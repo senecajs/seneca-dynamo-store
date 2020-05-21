@@ -1,0 +1,31 @@
+
+* run with docker
+** docker run -p 18000:8000 amazon/dynamodb-local
+* client
+** https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/workbench.html
+** nosql workbench provide key cred for local once connected
+*** use operation builder to create connection
+** to create table
+*** 1. use data modeler to define
+*** 2. use visualizer to apply to db
+* SDK
+** https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/
+* Local test+dev
+** used shareddb:
+*** docker run -p 18000:8000 amazon/dynamodb-local -jar DynamoDBLocal.jar -sharedDb
+**** data is transient, just help in mem
+**** otherwise tables not found
+*** create table with NoSQL workbench as above
+*** command line:
+**** aws dynamodb list-tables --endpoint-url http://localhost:18000
+*** shell
+**** http://localhost:18000/shell/
+***** dynamodb.listTables({},console.log)
+*** code
+**** will work with any region, no credentials needed
+***** endpoint: "http://localhost:18000"
+** data should all roundtrip and be consistent accross all these methods
+
+
+
+
