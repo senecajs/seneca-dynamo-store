@@ -89,8 +89,9 @@ function make_intern() {
 
     has_error: function(seneca, err, ctx, reply) {
       if (err) {
+        // console.log('HERR', typeof(err), require('util').isError(err), err)
         seneca.log.error('entity', err, { store: ctx.name })
-        reply(null, err)
+        reply(err)
       }
       return null != err
     },
@@ -132,7 +133,7 @@ function make_intern() {
               if(intern.has_error(seneca,err,ctx,reply)) return;
 
               // Reload to get data as per db
-              return intern.id_get(ctx,seneca,ent,table,id,reply)
+              return intern.id_get(ctx,seneca,ent,table,data.id,reply)
             })
           }
 
@@ -151,11 +152,13 @@ function make_intern() {
                 .reduce((o,k)=>(o[k]={Action:'PUT',Value:data[k]},o),{})
             }
 
+            //console.log(upreq)
+            
             ctx.dc.update(upreq, function(uperr, upres) {
               if(intern.has_error(seneca,uperr,ctx,reply)) return;
 
               // Reload to get data as per db
-              return intern.id_get(ctx,seneca,ent,table,id,reply)
+              return intern.id_get(ctx,seneca,ent,table,data.id,reply)
             })
           }
         },
@@ -169,11 +172,18 @@ function make_intern() {
           var qid = q.id
           
           if(null == qid) {
-            intern.list(ctx,seneca,qent,table,q,function(err, reslist) {
-              if(err) return reply(err)
+            var cq = seneca.util.clean(q)
+            var cq_key_count = Object.keys(cq).length
+            if(0 < cq_key_count ) {
+              intern.list(ctx,seneca,qent,table,q,function(err, reslist) {
+                if(err) return reply(err)
 
-              return reply(reslist ? reslist[0] : null)
-            })
+                return reply(reslist ? reslist[0] : null)
+              })
+            }
+            else {
+              return reply()
+            }
           }
 
           // Load by id
@@ -236,8 +246,11 @@ function make_intern() {
         TableName: table,
         Key: { id: id },
       }
+
+      //console.log(getreq)
       
       ctx.dc.get(getreq, function(geterr, getres) {
+        //console.log('TTT', geterr, getres)
         if(intern.has_error(seneca,geterr,ctx,reply)) return;
 
         var out_ent = null == getres.Item ? null : ent.make$(getres.Item)

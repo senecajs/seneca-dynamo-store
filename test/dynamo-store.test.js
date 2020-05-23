@@ -172,14 +172,32 @@ const testrun = {
     var expect = opts.expect
     var log = opts.log
     
-    // S00900: Load by field
+    // S01000: Load by field
     var m1 = (Math.random()+'').substring(2)
     var foo1 = await seneca.entity('test/foo').make$({m:m1,s:'s1',i:1,b:true}).save$()
     var foo1o = await seneca.entity('test/foo').load$({m:m1})
     
-    log && log('S00900', foo1, foo1o)
+    log && log('S01000', foo1, foo1o)
     expect(foo1).exists()
     expect(foo1o).exists()
     expect(foo1.data$()).equal(foo1o.data$())
+
+
+    // S01100: Load by two fields
+    var foo1om = await seneca.entity('test/foo').load$({m:m1,s:'s1'})
+    
+    log && log('S01100', foo1om)
+    expect(foo1om).exists()
+    expect(foo1.data$()).equal(foo1om.data$())
+
+
+    // S01200: Load with no fields finds nothing
+    var foo1n = await seneca.entity('test/foo').load$({})
+    
+    log && log('S01200', foo1n)
+    expect(foo1n).equal(null)
+
+
+
   }
 }
