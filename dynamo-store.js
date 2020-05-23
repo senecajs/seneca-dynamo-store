@@ -18,6 +18,16 @@ module.exports.defaults = {
   aws: {
     region: "region",
     endpoint: "http://localhost:8000",
+  },
+
+  // See https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#constructor-property
+  dc: {
+    // Latest version of dynamodb supports empty strings
+    convertEmptyValues: false
+  },
+
+  // entity meta data, by canon string
+  entity: {
   }
 }
 
@@ -39,14 +49,16 @@ function dynamo_store(options) {
     name: 'dynamo-store'
   }, options)
 
-
+  //console.log('OPTS', options, ctx.options)
+  
+  
   var store = intern.make_store(ctx)
   var meta = seneca.store.init(seneca, options, store)
 
   
   seneca.add({init:store.name, tag:meta.tag},function(msg, reply) {
     AWS.config.update(options.aws)
-    ctx.dc = new AWS.DynamoDB.DocumentClient()
+    ctx.dc = new AWS.DynamoDB.DocumentClient(options.dc)
     reply()
   })
 
@@ -114,6 +126,8 @@ function make_intern() {
           var table = intern.get_table(ent)
           var data = ent.data$(false)
 
+          data = intern.inbound(ctx,ent,data)
+          
           // Create new Item.
           if (!update) {
             var id = ent.id$
@@ -128,6 +142,8 @@ function make_intern() {
               TableName: table,
               Item: data
             }
+
+            //console.log(req)
             
             ctx.dc.put(req, function(err, res) {
               if(intern.has_error(seneca,err,ctx,reply)) return;
@@ -148,7 +164,7 @@ function make_intern() {
               AttributeUpdates:
               Object
                 .keys(data)
-                .filter(k=>k!='id')
+                .filter(k=> k!='id' && void 0!==data[k] )
                 .reduce((o,k)=>(o[k]={Action:'PUT',Value:data[k]},o),{})
             }
 
@@ -208,23 +224,58 @@ function make_intern() {
           var table = intern.get_table(qent)
 
           var all = true === q.all$
-          var load = true === q.load$
+          // var load = true === q.load$
 
           var qid = q.id
           
           if(null == qid) {
-            return reply()
+            var cq = seneca.util.clean(q)
+
+            if(0 === Object.keys(cq).length && !all) {
+              reply(seneca.error('empty-remove-query'))
+            }
+            
+            intern.list(ctx,seneca,qent,table,cq,function(listerr, list) {
+              if(intern.has_error(seneca,listerr,ctx,reply)) return;
+
+              if(all) {
+                var batchreq = {
+                  RequestItems: {}
+                }
+
+                batchreq.RequestItems[table] = list.map(item=>({
+                  DeleteRequest: {
+                    Key: { id: item.id }
+                  }
+                }))
+                
+                //console.log(batchreq)
+
+                if(0 === batchreq.RequestItems[table].length) {
+                  return reply()
+                }
+                
+                ctx.dc.batchWrite(batchreq, function(batcherr, batchres) {
+                  if(intern.has_error(seneca,batcherr,ctx,reply)) return;
+
+                  reply()
+                })
+              }
+              else {
+                qid = 0 < list.length ? list[0].id : null
+              }
+            })
           }
 
           // Remove single by id
-          else {
+          if(null != qid) {
             var delreq = {
               TableName: table,
               Key: { id: qid },
             }
 
-            ctx.dc.delete(delreq, function(geterr, getres) {
-              if(intern.has_error(seneca,geterr,ctx,reply)) return;
+            ctx.dc.delete(delreq, function(delerr, delres) {
+              if(intern.has_error(seneca,delerr,ctx,reply)) return;
 
               reply()
             })
@@ -253,7 +304,9 @@ function make_intern() {
         //console.log('TTT', geterr, getres)
         if(intern.has_error(seneca,geterr,ctx,reply)) return;
 
-        var out_ent = null == getres.Item ? null : ent.make$(getres.Item)
+        var data = null == getres.Item ? null : getres.Item
+        data = intern.outbound(ctx,ent,data)
+        var out_ent = null == data ? null : ent.make$(data)
         reply(out_ent)
       })
     },
@@ -278,6 +331,48 @@ function make_intern() {
         reply(null, out_list)
       })
     },
+
+    inbound: function(ctx,ent,data) {
+      if(null == data) return null;
+      
+      var canon = ent.canon$({object:true})
+      var canonkey = canon.base+'/'+canon.name
+      var entity = ctx.options.entity[canonkey]
+      //console.log('AAA', canonkey, entity, ctx.options.entity)
+
+      if(entity) {
+        var fields = entity.fields||{}
+        Object.keys(fields).forEach(fn=>{
+          var fs = fields[fn]||{}
+          var type = fs.type
+          if('date'===type && data[fn] instanceof Date) {
+            data[fn] = data[fn].toISOString()
+          }
+        })
+      }
+      return data
+    },
+
+    outbound: function(ctx,ent,data) {
+      if(null == data) return null;
+      
+      var canon = ent.canon$({object:true})
+      var canonkey = canon.base+'/'+canon.name
+      var entity = ctx.options.entity[canonkey]
+      //console.log('BBB', canonkey, entity, ctx.options.entity)
+
+      if(entity) {
+        var fields = entity.fields||{}
+        Object.keys(fields).forEach(fn=>{
+          var fs = fields[fn]||{}
+          var type = fs.type
+          if('date'===type && 'string' === typeof(data[fn])) {
+            data[fn] = new Date(data[fn])
+          }
+        })
+      }
+      return data
+    } 
 
   }
 }
