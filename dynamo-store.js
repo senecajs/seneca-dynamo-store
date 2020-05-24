@@ -49,9 +49,6 @@ function dynamo_store(options) {
     name: 'dynamo-store'
   }, options)
 
-  //console.log('OPTS', options, ctx.options)
-  
-  
   var store = intern.make_store(ctx)
   var meta = seneca.store.init(seneca, options, store)
 
@@ -101,7 +98,6 @@ function make_intern() {
 
     has_error: function(seneca, err, ctx, reply) {
       if (err) {
-        // console.log('HERR', typeof(err), require('util').isError(err), err)
         seneca.log.error('entity', err, { store: ctx.name })
         reply(err)
       }
@@ -143,8 +139,6 @@ function make_intern() {
               Item: data
             }
 
-            //console.log(req)
-            
             ctx.dc.put(req, function(err, res) {
               if(intern.has_error(seneca,err,ctx,reply)) return;
 
@@ -168,8 +162,6 @@ function make_intern() {
                 .reduce((o,k)=>(o[k]={Action:'PUT',Value:data[k]},o),{})
             }
 
-            //console.log(upreq)
-            
             ctx.dc.update(upreq, function(uperr, upres) {
               if(intern.has_error(seneca,uperr,ctx,reply)) return;
 
@@ -224,11 +216,14 @@ function make_intern() {
           var table = intern.get_table(qent)
 
           var all = true === q.all$
-          // var load = true === q.load$
+          var load = true === q.load$
 
           var qid = q.id
-          
-          if(null == qid) {
+
+          if(null != qid) {
+            return remove_single_by_id(qid)
+          }
+          else {
             var cq = seneca.util.clean(q)
 
             if(0 === Object.keys(cq).length && !all) {
@@ -249,8 +244,6 @@ function make_intern() {
                   }
                 }))
                 
-                //console.log(batchreq)
-
                 if(0 === batchreq.RequestItems[table].length) {
                   return reply()
                 }
@@ -263,21 +256,37 @@ function make_intern() {
               }
               else {
                 qid = 0 < list.length ? list[0].id : null
+                return remove_single_by_id(qid)
               }
             })
           }
 
-          // Remove single by id
-          if(null != qid) {
+          function remove_single_by_id(qid) {
+            if(null != qid) {
+              if(load) {
+                intern.id_get(ctx,seneca,qent,table,qid,dc_delete)
+              }
+              else {
+                dc_delete()
+              }
+            }
+            else {
+              return reply()
+            }
+          }
+
+          function dc_delete(err, old) {
+            if(intern.has_error(seneca,err,ctx,reply)) return;
+
             var delreq = {
               TableName: table,
               Key: { id: qid },
             }
-
+            
             ctx.dc.delete(delreq, function(delerr, delres) {
               if(intern.has_error(seneca,delerr,ctx,reply)) return;
-
-              reply()
+              
+              reply(old)
             })
           }
         },
@@ -298,16 +307,13 @@ function make_intern() {
         Key: { id: id },
       }
 
-      //console.log(getreq)
-      
       ctx.dc.get(getreq, function(geterr, getres) {
-        //console.log('TTT', geterr, getres)
         if(intern.has_error(seneca,geterr,ctx,reply)) return;
 
         var data = null == getres.Item ? null : getres.Item
         data = intern.outbound(ctx,ent,data)
         var out_ent = null == data ? null : ent.make$(data)
-        reply(out_ent)
+        reply(null,out_ent)
       })
     },
 
@@ -346,7 +352,6 @@ function make_intern() {
       var canon = ent.canon$({object:true})
       var canonkey = canon.base+'/'+canon.name
       var entity = ctx.options.entity[canonkey]
-      //console.log('AAA', canonkey, entity, ctx.options.entity)
 
       if(entity) {
         var fields = entity.fields||{}
@@ -367,7 +372,6 @@ function make_intern() {
       var canon = ent.canon$({object:true})
       var canonkey = canon.base+'/'+canon.name
       var entity = ctx.options.entity[canonkey]
-      //console.log('BBB', canonkey, entity, ctx.options.entity)
 
       if(entity) {
         var fields = entity.fields||{}
