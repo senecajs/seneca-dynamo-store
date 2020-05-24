@@ -110,6 +110,7 @@ lab.test('store-save', async () => {
   await testrun.store_save({seneca:si,expect,log:console.log})
 })
 
+// TODO: list: IN queries
 
 
 

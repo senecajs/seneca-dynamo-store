@@ -312,13 +312,21 @@ function make_intern() {
     },
 
     list: function(ctx,seneca,qent,table,q,reply) {
+      var isarr = Array.isArray
+      if(isarr(q)) {
+        q = {id:q}
+      }
+      if('object'!=typeof(q)) {
+        q = {id:q}
+      }
+      
       var scanreq = {
         TableName: table,
         ScanFilter: Object
           .keys(q)
           .reduce((o,k)=>(o[k]={
-            ComparisonOperator: 'EQ',
-            AttributeValueList:[q[k]],
+            ComparisonOperator: isarr(q[k])?'IN':'EQ',
+            AttributeValueList:isarr(q[k])?q[k]:[q[k]],
           },o),{})
       }
 
