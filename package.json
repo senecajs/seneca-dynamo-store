@@ -1,7 +1,7 @@
 {
   "name": "@seneca/dynamo-store",
   "description": "DynamoDB store for Seneca",
-  "version": "5.7.0",
+  "version": "0.1.0",
   "keywords": [
     "seneca",
     "dynamo-store",
@@ -19,7 +19,7 @@
     "test-msgs": "lab -t 50 -P messages.test -r console -o stdout -r html -o test/coverage.html",
     "doc": "seneca-doc",
     "coveralls": "lab -s -P test -r lcov | coveralls",
-    "prettier": "prettier --write --no-semi --single-quote *.js lib/*.js test/*.js",
+    "prettier": "prettier --write --no-semi --single-quote *.js test/*.js",
     "reset": "npm run clean && npm i && npm test",
     "clean": "rm -rf node_modules package-lock.json yarn.lock",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",

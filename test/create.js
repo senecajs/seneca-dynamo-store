@@ -1,11 +1,10 @@
-
-const AWS = require("aws-sdk")
+const AWS = require('aws-sdk')
 
 var config = {
   region: 'region',
   endpoint: process.env.SENECA_DYNAMO_ENDPOINT,
   accessKeyId: 'none',
-  secretAccessKey: 'none'
+  secretAccessKey: 'none',
 }
 
 console.log(config)
@@ -14,65 +13,71 @@ AWS.config.update(config)
 
 var ddb = new AWS.DynamoDB()
 
-ddb.createTable({
-  "TableName": "test_foo",
-  KeySchema: [
-    {
-      AttributeName: "id", 
-      KeyType: "HASH"
+ddb.createTable(
+  {
+    TableName: 'test_foo',
+    KeySchema: [
+      {
+        AttributeName: 'id',
+        KeyType: 'HASH',
+      },
+    ],
+    AttributeDefinitions: [
+      {
+        AttributeName: 'id',
+        AttributeType: 'S',
+      },
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5,
     },
-  ],
-  AttributeDefinitions: [
-    {
-      AttributeName: "id", 
-      AttributeType: "S"
-    }, 
-  ],
-  ProvisionedThroughput: {
-    ReadCapacityUnits: 5, 
-    WriteCapacityUnits: 5
   },
-}, console.log)
+  console.log
+)
 
-
-ddb.createTable({
-  "TableName": "foo",
-  KeySchema: [
-    {
-      AttributeName: "id", 
-      KeyType: "HASH"
+ddb.createTable(
+  {
+    TableName: 'foo',
+    KeySchema: [
+      {
+        AttributeName: 'id',
+        KeyType: 'HASH',
+      },
+    ],
+    AttributeDefinitions: [
+      {
+        AttributeName: 'id',
+        AttributeType: 'S',
+      },
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5,
     },
-  ],
-  AttributeDefinitions: [
-    {
-      AttributeName: "id", 
-      AttributeType: "S"
-    }, 
-  ],
-  ProvisionedThroughput: {
-    ReadCapacityUnits: 5, 
-    WriteCapacityUnits: 5
   },
-}, console.log)
+  console.log
+)
 
-
-ddb.createTable({
-  "TableName": "moon_bar",
-  KeySchema: [
-    {
-      AttributeName: "id", 
-      KeyType: "HASH"
+ddb.createTable(
+  {
+    TableName: 'moon_bar',
+    KeySchema: [
+      {
+        AttributeName: 'id',
+        KeyType: 'HASH',
+      },
+    ],
+    AttributeDefinitions: [
+      {
+        AttributeName: 'id',
+        AttributeType: 'S',
+      },
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5,
     },
-  ],
-  AttributeDefinitions: [
-    {
-      AttributeName: "id", 
-      AttributeType: "S"
-    }, 
-  ],
-  ProvisionedThroughput: {
-    ReadCapacityUnits: 5, 
-    WriteCapacityUnits: 5
   },
-}, console.log)
-
+  console.log
+)
