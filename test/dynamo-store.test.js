@@ -71,7 +71,7 @@ lab.test('legacy-store-test', async () => {
   await si.ready()
 
   var si_no_merge = make_seneca({plugin:Object.assign({merge:false},plugin)})
-  await si.ready()
+  await si_no_merge.ready()
 
   LegacyStoreTest.basictest({
     seneca: si,

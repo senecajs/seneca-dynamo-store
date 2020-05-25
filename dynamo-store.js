@@ -121,7 +121,10 @@ function make_intern() {
           var update = null != ent.id
           var table = intern.get_table(ent)
           var data = ent.data$(false)
-
+          var q = msg.q || {}
+          
+          var merge = null == q.merge$ || true === !!q.merge$
+          
           data = intern.inbound(ctx,ent,data)
           
           // Create new Item.
@@ -133,7 +136,10 @@ function make_intern() {
             }
 
             data.id = id
+          }
 
+
+          if(!update || !merge) {
             var req = {
               TableName: table,
               Item: data
