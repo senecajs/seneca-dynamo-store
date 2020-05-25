@@ -1,5 +1,8 @@
 language: node_js
 
+services:
+  - docker
+
 env:
   - SENECA_VER=seneca@3.x.x
   - SENECA_VER=seneca@plugin
@@ -14,6 +17,7 @@ node_js:
 before_script:
   - npm uninstall seneca
   - npm install $SENECA_VER
+  - docker run -p 18000:8000 amazon/dynamodb-local -jar DynamoDBLocal.jar -sharedDb
 
 after_script:
   - npm run coveralls

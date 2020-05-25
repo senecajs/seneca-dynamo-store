@@ -169,7 +169,8 @@ function make_intern() {
               AttributeUpdates:
               Object
                 .keys(data)
-                .filter(k=> k!='id' && void 0!==data[k] )
+              //.filter(k=> k!='id' && void 0!==data[k] )
+                .filter(k=> k!='id')
                 .reduce((o,k)=>(o[k]={Action:'PUT',Value:data[k]},o),{})
             }
 

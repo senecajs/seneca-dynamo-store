@@ -22,6 +22,9 @@ the [Seneca framework](http://senecajs.org). It provides a set of
 common dynamo-store management actions (`register`, `login` etc.).
 
 
+# NOTE: WORK IN PROGRESS
+
+
 ## Install
 
 ```sh
