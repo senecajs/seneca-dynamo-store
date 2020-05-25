@@ -15,6 +15,9 @@ const intern = (module.exports.intern = make_intern())
 module.exports.defaults = {
   test: false,
 
+  // preserve undefined fields when saving
+  merge: true,
+  
   aws: {
     region: "region",
     endpoint: "http://localhost:8000",
@@ -123,8 +126,10 @@ function make_intern() {
           var data = ent.data$(false)
           var q = msg.q || {}
           
-          var merge = null == q.merge$ || true === !!q.merge$
-          
+          // The merge$ directive has precedence.
+          // Explicit `false` value otherwise consider merge `true`. 
+          var merge = null == q.merge$ ? false !== opts.merge : false !== q.merge$
+
           data = intern.inbound(ctx,ent,data)
           
           // Create new Item.

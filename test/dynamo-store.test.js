@@ -73,6 +73,8 @@ lab.test('legacy-store-test', async () => {
   var si_no_merge = make_seneca({plugin:Object.assign({merge:false},plugin)})
   await si_no_merge.ready()
 
+  console.log('SIM', si_no_merge.find_plugin('dynamo-store$1'))
+  
   LegacyStoreTest.basictest({
     seneca: si,
     senecaMerge: si_no_merge,
