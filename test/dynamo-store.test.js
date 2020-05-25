@@ -28,6 +28,8 @@ function make_seneca(config) {
     .use('..',Object.assign({
       aws: {
         endpoint: process.env.SENECA_DYNAMO_ENDPOINT || "http://localhost:8000",
+        accessKeyId: 'none',
+        secretAccessKey: 'none'
       }
     }, config.plugin))
 }
