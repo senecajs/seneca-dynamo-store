@@ -57,6 +57,8 @@ function dynamo_store(options) {
 
   
   seneca.add({init:store.name, tag:meta.tag},function(msg, reply) {
+    console.log('AWS', options)
+
     AWS.config.update(options.aws)
     ctx.dc = new AWS.DynamoDB.DocumentClient(options.dc)
     reply()

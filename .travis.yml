@@ -18,6 +18,7 @@ before_script:
   - npm uninstall seneca
   - npm install $SENECA_VER
   - docker run -d -p 18000:8000 amazon/dynamodb-local -jar DynamoDBLocal.jar -sharedDb
+  - SENECA_DYNAMO_ENDPOINT=http://localhost:18000
 
 after_script:
   - npm run coveralls
