@@ -13,10 +13,6 @@ AWS.config.update(config)
 
 var ddb = new AWS.DynamoDB()
 
-ddb.listTables({},console.log)
-
-/*
-
 ddb.createTable(
   {
     TableName: 'test_foo',
@@ -85,4 +81,4 @@ ddb.createTable(
   },
   console.log
 )
-*/
+

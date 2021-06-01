@@ -15,7 +15,9 @@
   "license": "MIT",
   "main": "dynamo-store.js",
   "scripts": {
-    "test": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 lab -v -L  -t 50 -P test -r console -o stdout -r html -o test/coverage.html",
+    "migrate-for-test": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 node ./test/support/create-test-tables.js",
+    "list-test-tables": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 node ./test/support/list-test-tables.js",
+    "test": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 lab -v -L  -t 50 -P '\\.test' test -r console -o stdout -r html -o test/coverage.html",
     "test-msgs": "lab -t 50 -P messages.test -r console -o stdout -r html -o test/coverage.html",
     "doc": "seneca-doc",
     "coveralls": "lab -s -P test -r lcov | coveralls",
