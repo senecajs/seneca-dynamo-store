@@ -1,10 +1,13 @@
-const AWS = require('aws-sdk')
-const config = require('./config')
+const DynamoDb = require('./client')
 
-console.log(config)
+const ddb = DynamoDb.connect({ verbose: true })
 
-AWS.config.update(config)
+ddb.listTables({}, (err, result) => {
+  if (err) {
+    console.error('Error:', err.message)
+    return process.exit(1)
+  }
 
-var ddb = new AWS.DynamoDB()
+  console.log(result)
+})
 
-ddb.listTables({},console.log)
