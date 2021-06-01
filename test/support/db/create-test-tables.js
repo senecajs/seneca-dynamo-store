@@ -1,11 +1,7 @@
-const AWS = require('aws-sdk')
-const config = require('./config')
+const DynamoDb = require('./client')
 
-console.log(config)
+const ddb = DynamoDb.connect({ verbose: true })
 
-AWS.config.update(config)
-
-var ddb = new AWS.DynamoDB()
 
 ddb.createTable(
   {
@@ -27,7 +23,7 @@ ddb.createTable(
       WriteCapacityUnits: 5,
     },
   },
-  console.log
+  after_created
 )
 
 ddb.createTable(
@@ -50,7 +46,7 @@ ddb.createTable(
       WriteCapacityUnits: 5,
     },
   },
-  console.log
+  after_created
 )
 
 ddb.createTable(
@@ -73,6 +69,14 @@ ddb.createTable(
       WriteCapacityUnits: 5,
     },
   },
-  console.log
+  after_created
 )
+
+
+function after_created(err) {
+  if (err) {
+    console.error('Error:', err.message)
+    return process.exit(1)
+  }
+}
 
