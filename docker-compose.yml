@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  dynamodb_dev:
+    build: .
+    ports:
+      - 18000:8000
+
