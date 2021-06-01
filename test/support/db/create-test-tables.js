@@ -1,11 +1,5 @@
 const AWS = require('aws-sdk')
-
-var config = {
-  region: 'region',
-  endpoint: process.env.SENECA_DYNAMO_ENDPOINT || 'http://localhost:18000',
-  accessKeyId: 'none',
-  secretAccessKey: 'none',
-}
+const config = require('./config')
 
 console.log(config)
 
