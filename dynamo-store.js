@@ -212,17 +212,24 @@ function make_intern() {
           var qid = q.id
 
           if (null == qid) {
-            var cq = seneca.util.clean(q)
-            var cq_key_count = Object.keys(cq).length
-            if (0 < cq_key_count) {
-              intern.list(ctx, seneca, qent, table, q, function (err, reslist) {
-                if (err) return reply(err)
+            // TODO:
+            //
+            //var cq = seneca.util.clean(q)
+            //var cq_key_count = Object.keys(cq).length
+            //
+            //if (0 < cq_key_count) {
 
-                return reply(reslist ? reslist[0] : null)
-              })
-            } else {
-              return reply()
-            }
+            var cq = Object.assign({}, q)
+            cq.limit$ = 1
+
+            return intern.list(ctx, seneca, qent, table, cq, function (err, reslist) {
+              if (err) return reply(err)
+
+              return reply(reslist ? reslist[0] : null)
+            })
+            //} else {
+              //return reply()
+            //}
           }
 
           // Load by id
@@ -353,21 +360,27 @@ function make_intern() {
         q = { id: q }
       }
 
-      var scanreq = {
-        TableName: table,
-        ScanFilter: Object.keys(q).reduce(
-          (o, k) => (
-            (o[k] = {
-              ComparisonOperator: isarr(q[k]) ? 'IN' : 'EQ',
-              AttributeValueList: isarr(q[k]) ? q[k] : [q[k]],
-            }),
-            o
-          ),
-          {}
-        ),
-      }
+      // TODO: BEGIN: Tidy up.
+      //
+      var scanreq = {}
+      scanreq.TableName = table
 
-      ctx.dc.scan(scanreq, function (scanerr, scanres) {
+      scanreq.ScanFilter = Object.keys(seneca.util.clean(q)).reduce((o, k) => {
+        o[k] = {
+          ComparisonOperator: isarr(q[k]) ? 'IN' : 'EQ',
+          AttributeValueList: isarr(q[k]) ? q[k] : [q[k]]
+        }
+
+        return o
+      }, {})
+
+      if ('number' === typeof q.limit$ && 0 <= q.limit$) {
+        scanreq.Limit = q.limit$
+      }
+      //
+      // BEGIN: Tidy up.
+
+      return ctx.dc.scan(scanreq, function (scanerr, scanres) {
         if (intern.has_error(seneca, scanerr, ctx, reply)) return
 
         var out_list =
@@ -375,7 +388,7 @@ function make_intern() {
             ? []
             : scanres.Items.map((item) => qent.make$(item))
 
-        reply(null, out_list)
+        return reply(null, out_list)
       })
     },
 

@@ -97,6 +97,22 @@ lab.describe('legacy-store-test', () => {
       script: lab
     })
   })
+
+  lab.describe('limit tests', () => {
+    LegacyStoreTest.limitstest({
+      seneca: si,
+      script: lab
+    })
+  })
+
+  /*
+  lab.describe('sort tests', () => {
+    LegacyStoreTest.sorttest({
+      seneca: si,
+      script: lab
+    })
+  })
+  */
 })
 
 var plugin = {
