@@ -15,7 +15,7 @@ function delete_table_if_not_exists(table, ddb, opts = {}) {
 
       if (found_table) {
         console.error('Error:', err.message)
-        return process.exit(1)
+        return
       }
 
       if (opts.verbose) {
@@ -24,6 +24,10 @@ function delete_table_if_not_exists(table, ddb, opts = {}) {
 
       return
     }
+
+      if (opts.verbose) {
+        console.log('Table "' + table + '" has been deleted successfully.')
+      }
   })
 }
 
