@@ -3,10 +3,7 @@ const DynamoDb = require('./client')
 const ddb = DynamoDb.connect({ verbose: true })
 
 
-<<<<<<< HEAD
-ddb.listTables({}, console.log)
-=======
-ddb.createTable(
+const schema = [
   {
     TableName: 'test_foo',
     KeySchema: [
@@ -23,13 +20,10 @@ ddb.createTable(
     ],
     ProvisionedThroughput: {
       ReadCapacityUnits: 5,
-      WriteCapacityUnits: 5,
-    },
+      WriteCapacityUnits: 5
+    }
   },
-  after_created
-)
 
-ddb.createTable(
   {
     TableName: 'foo',
     KeySchema: [
@@ -46,13 +40,10 @@ ddb.createTable(
     ],
     ProvisionedThroughput: {
       ReadCapacityUnits: 5,
-      WriteCapacityUnits: 5,
-    },
+      WriteCapacityUnits: 5
+    }
   },
-  after_created
-)
 
-ddb.createTable(
   {
     TableName: 'moon_bar',
     KeySchema: [
@@ -64,23 +55,135 @@ ddb.createTable(
     AttributeDefinitions: [
       {
         AttributeName: 'id',
-        AttributeType: 'S',
+        AttributeType: 'S'
       },
     ],
     ProvisionedThroughput: {
       ReadCapacityUnits: 5,
-      WriteCapacityUnits: 5,
-    },
+      WriteCapacityUnits: 5
+    }
   },
-  after_created
-)
 
+  {
+    TableName: 'players',
+    KeySchema: [
+      {
+        AttributeName: 'id',
+        KeyType: 'HASH',
+      },
+    ],
+    AttributeDefinitions: [
+      {
+        AttributeName: 'id',
+        AttributeType: 'S'
+      },
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5
+    }
+  },
 
-function after_created(err) {
-  if (err) {
-    console.error('Error:', err.message)
-    return process.exit(1)
+  {
+    TableName: 'racers',
+    KeySchema: [
+      {
+        AttributeName: 'id',
+        KeyType: 'HASH',
+      },
+    ],
+    AttributeDefinitions: [
+      {
+        AttributeName: 'id',
+        AttributeType: 'S'
+      },
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5
+    }
+  },
+
+  {
+    TableName: 'users',
+    KeySchema: [
+      {
+        AttributeName: 'id',
+        KeyType: 'HASH',
+      },
+    ],
+    AttributeDefinitions: [
+      {
+        AttributeName: 'id',
+        AttributeType: 'S'
+      },
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5
+    }
+  },
+
+  {
+    TableName: 'customers',
+    KeySchema: [
+      {
+        AttributeName: 'id',
+        KeyType: 'HASH',
+      },
+    ],
+    AttributeDefinitions: [
+      {
+        AttributeName: 'id',
+        AttributeType: 'S'
+      },
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5
+    }
+  },
+
+  {
+    TableName: 'products',
+    KeySchema: [
+      {
+        AttributeName: 'id',
+        KeyType: 'HASH',
+      },
+    ],
+    AttributeDefinitions: [
+      {
+        AttributeName: 'id',
+        AttributeType: 'S'
+      },
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5
+    }
   }
+]
+
+for (const table_desc of schema) {
+  create_table(table_desc, ddb, { verbose: true })
 }
 
->>>>>>> Allow the developer to delete test databases
+
+function create_table(table_desc, ddb, opts = {}) {
+  return ddb.createTable(table_desc, (err) => {
+    if (err) {
+      const table = table_desc.TableName || 'undefined'
+      console.error('Error creating table "' + table + '":', err.message)
+      return
+    }
+
+    if (opts.verbose) {
+      const table = table_desc.TableName
+      console.log('Table "' + table + '" has been created successfully.')
+    }
+
+    return
+  })
+}
+
