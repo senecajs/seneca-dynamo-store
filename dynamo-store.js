@@ -212,23 +212,18 @@ function make_intern() {
           var qid = q.id
 
           if (null == qid) {
-            // TODO:
-            //
-            //var cq = seneca.util.clean(q)
-            //var cq_key_count = Object.keys(cq).length
-            //
-            //if (0 < cq_key_count) {
+            var cq = seneca.util.clean(q)
+            var cq_key_count = Object.keys(cq).length
 
-            var cq = Object.assign({}, q)
+            if (0 < cq_key_count) {
+              return intern.list(ctx, seneca, qent, table, cq, function (err, reslist) {
+                if (err) return reply(err)
 
-            return intern.list(ctx, seneca, qent, table, cq, function (err, reslist) {
-              if (err) return reply(err)
-
-              return reply(reslist ? reslist[0] : null)
-            })
-            //} else {
-              //return reply()
-            //}
+                return reply(reslist ? reslist[0] : null)
+              })
+            } else {
+              return reply(null, null)
+            }
           }
 
           // Load by id
