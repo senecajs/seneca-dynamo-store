@@ -13,12 +13,14 @@ results
 
 node_modules
 npm-debug.log
+package-lock.json
 
 README.html
 
 .DS_Store
 *~
 coverage
+coverage.html
 
 doc/annotated
 
