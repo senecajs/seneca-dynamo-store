@@ -220,7 +220,6 @@ function make_intern() {
             //if (0 < cq_key_count) {
 
             var cq = Object.assign({}, q)
-            cq.limit$ = 1
 
             return intern.list(ctx, seneca, qent, table, cq, function (err, reslist) {
               if (err) return reply(err)
@@ -360,8 +359,6 @@ function make_intern() {
         q = { id: q }
       }
 
-      // TODO: BEGIN: Tidy up.
-      //
       var scanreq = {}
       scanreq.TableName = table
 
@@ -373,12 +370,6 @@ function make_intern() {
 
         return o
       }, {})
-
-      if ('number' === typeof q.limit$ && 0 <= q.limit$) {
-        scanreq.Limit = q.limit$
-      }
-      //
-      // BEGIN: Tidy up.
 
       return ctx.dc.scan(scanreq, function (scanerr, scanres) {
         if (intern.has_error(seneca, scanerr, ctx, reply)) return
