@@ -20,8 +20,8 @@ README.html
 .DS_Store
 *~
 coverage
+coverage.html
 
 doc/annotated
 
 *.off
-
