@@ -83,36 +83,18 @@ lab.describe('legacy-store-test', () => {
   lab.before(() => si.ready())
 
 
-  const si_no_merge = make_seneca({
+  const si_merge = make_seneca({
     plugin: Object.assign({ merge: false }, plugin)
   })
 
-  lab.before(() => si_no_merge.ready())
+  lab.before(() => si_merge.ready())
 
 
-  lab.describe('basic tests', () => {
-    LegacyStoreTest.basictest({
-      seneca: si,
-      senecaMerge: si_no_merge,
-      script: lab
-    })
+  LegacyStoreTest.basictest({
+    seneca: si,
+    senecaMerge: si_merge,
+    script: lab
   })
-
-  lab.describe('limit tests', () => {
-    LegacyStoreTest.limitstest({
-      seneca: si,
-      script: lab
-    })
-  })
-
-  /*
-  lab.describe('sort tests', () => {
-    LegacyStoreTest.sorttest({
-      seneca: si,
-      script: lab
-    })
-  })
-  */
 })
 
 var plugin = {
