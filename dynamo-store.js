@@ -16,6 +16,7 @@ module.exports.defaults = {
   merge: true,
 
   aws: {
+    default: false,
     region: 'region',
     endpoint: 'http://localhost:8000',
   },
@@ -24,6 +25,8 @@ module.exports.defaults = {
   dc: {
     // Latest version of dynamodb supports empty strings
     convertEmptyValues: false,
+
+    default: false,
   },
 
   // entity meta data, by canon string
@@ -53,11 +56,11 @@ function dynamo_store(options) {
   var meta = seneca.store.init(seneca, options, store)
 
   seneca.add({ init: store.name, tag: meta.tag }, function (msg, reply) {
-    if (null != options.aws) {
+    if (!options.aws.default) {
       AWS.config.update(intern.clean_config(options.aws))
     }
 
-    if (null == options.dc) {
+    if (options.dc.default) {
       ctx.dc = new AWS.DynamoDB.DocumentClient()
     } else {
       ctx.dc = new AWS.DynamoDB.DocumentClient(intern.clean_config(options.dc))
