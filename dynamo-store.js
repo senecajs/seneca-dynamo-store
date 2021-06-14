@@ -222,7 +222,7 @@ function make_intern() {
                 return reply(reslist ? reslist[0] : null)
               })
             } else {
-              return reply(null, null)
+              return reply()
             }
           }
 
@@ -354,17 +354,16 @@ function make_intern() {
         q = { id: q }
       }
 
-      var scanreq = {}
-      scanreq.TableName = table
-
-      scanreq.ScanFilter = Object.keys(seneca.util.clean(q)).reduce((o, k) => {
-        o[k] = {
-          ComparisonOperator: isarr(q[k]) ? 'IN' : 'EQ',
-          AttributeValueList: isarr(q[k]) ? q[k] : [q[k]]
-        }
-
-        return o
-      }, {})
+      var scanreq = {
+        TableName: table,
+        ScanFilter: Object.keys(q).reduce((o, k) => (
+          (o[k] = {
+            ComparisonOperator: isarr(q[k]) ? 'IN' : 'EQ',
+            AttributeValueList: isarr(q[k]) ? q[k] : [q[k]],
+          }),
+          o
+        ), {})
+      }
 
       return ctx.dc.scan(scanreq, function (scanerr, scanres) {
         if (intern.has_error(seneca, scanerr, ctx, reply)) return
