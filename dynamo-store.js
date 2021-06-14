@@ -53,8 +53,16 @@ function dynamo_store(options) {
   var meta = seneca.store.init(seneca, options, store)
 
   seneca.add({ init: store.name, tag: meta.tag }, function (msg, reply) {
-    AWS.config.update(intern.clean_config(options.aws))
-    ctx.dc = new AWS.DynamoDB.DocumentClient(intern.clean_config(options.dc))
+    if (null != options.aws) {
+      AWS.config.update(intern.clean_config(options.aws))
+    }
+
+    if (null == options.dc) {
+      ctx.dc = new AWS.DynamoDB.DocumentClient()
+    } else {
+      ctx.dc = new AWS.DynamoDB.DocumentClient(intern.clean_config(options.dc))
+    }
+
     reply()
   })
 
@@ -82,6 +90,9 @@ function make_intern() {
           delete cfg[prop]
         }
       }
+
+      console.log('SENECA DYNAMO STORE CLEAN CONFIG', cfgin, cfg)
+
       return cfg
     },
 
