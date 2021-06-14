@@ -32,6 +32,7 @@ npm install seneca
 npm install seneca-promisify // dependency
 npm install seneca-entity // dependency
 npm install @seneca/dynamo-store
+npm install aws-sdk
 ```
 
 ### Quick example

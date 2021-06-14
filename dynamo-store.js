@@ -53,8 +53,8 @@ function dynamo_store(options) {
   var meta = seneca.store.init(seneca, options, store)
 
   seneca.add({ init: store.name, tag: meta.tag }, function (msg, reply) {
-    AWS.config.update(options.aws)
-    ctx.dc = new AWS.DynamoDB.DocumentClient(options.dc)
+    AWS.config.update(intern.clean_config(options.aws))
+    ctx.dc = new AWS.DynamoDB.DocumentClient(intern.clean_config(options.dc))
     reply()
   })
 
@@ -74,6 +74,16 @@ function dynamo_store(options) {
 function make_intern() {
   return {
     PV: 1, // persistence version, used for data migration
+
+    clean_config: function (cfgin) {
+      let cfg = { ...cfgin }
+      for (let prop in cfg) {
+        if (null == cfg[prop]) {
+          delete cfg[prop]
+        }
+      }
+      return cfg
+    },
 
     make_msg: function (msg_fn, ctx) {
       return require('./lib/' + msg_fn)(ctx)
