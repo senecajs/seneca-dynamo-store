@@ -347,11 +347,10 @@ function make_intern() {
 
     list: function (ctx, seneca, qent, table, q, reply) {
       var isarr = Array.isArray
-      if (isarr(q)) {
+      if (isarr(q) || 'object' != typeof q) {
         q = { id: q }
-      }
-      if ('object' != typeof q) {
-        q = { id: q }
+      } else {
+        q = seneca.util.clean(q)
       }
 
       var scanreq = {
