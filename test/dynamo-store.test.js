@@ -1,16 +1,17 @@
 /* Copyright (c) 2019-2020 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-const Lab = require('@hapi/lab')
 const Code = require('@hapi/code')
-const lab = (exports.lab = Lab.script())
 const expect = Code.expect
+
+const Lab = require('@hapi/lab')
+const lab = (exports.lab = Lab.script())
 
 const Seneca = require('seneca')
 const Plugin = require('..')
 const PluginValidator = require('seneca-plugin-validator')
 
-var LegacyStoreTest = require('seneca-store-test')
+const LegacyStoreTest = require('seneca-store-test')
 
 function make_seneca(config) {
   config = Object.assign({ seneca: {}, plugin: {} }, config)
@@ -62,32 +63,37 @@ lab.test('export', async () => {
   expect(get_dc()).exists()
 })
 
-lab.test('legacy-store-test', async () => {
-  var plugin = {
+lab.describe('legacy-store-test', () => {
+  const plugin = {
     entity: {
       'moon/bar': {
         // for special handling
         fields: {
           wen: {
-            type: 'date',
-          },
-        },
-      },
-    },
+            type: 'date'
+          }
+        }
+      }
+    }
   }
 
-  var si = make_seneca({ plugin })
-  await si.ready()
 
-  var si_no_merge = make_seneca({
-    plugin: Object.assign({ merge: false }, plugin),
+  const si = make_seneca({ plugin })
+
+  lab.before(() => si.ready())
+
+
+  const si_merge = make_seneca({
+    plugin: Object.assign({ merge: false }, plugin)
   })
-  await si_no_merge.ready()
+
+  lab.before(() => si_merge.ready())
+
 
   LegacyStoreTest.basictest({
     seneca: si,
-    senecaMerge: si_no_merge,
-    script: lab,
+    senecaMerge: si_merge,
+    script: lab
   })
 })
 
