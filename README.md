@@ -22,6 +22,11 @@ the [Seneca framework](http://senecajs.org). It provides a set of
 common dynamo-store management actions (`register`, `login` etc.).
 
 
+## WARNING
+
+The current naive implementation of upserts fails the race condition test. Please be advised.
+
+
 # NOTE: WORK IN PROGRESS
 
 
