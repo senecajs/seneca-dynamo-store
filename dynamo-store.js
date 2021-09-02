@@ -94,7 +94,7 @@ function make_intern() {
         }
       }
 
-      console.log('SENECA DYNAMO STORE CLEAN CONFIG', cfgin, cfg)
+      // console.log('SENECA DYNAMO STORE CLEAN CONFIG', cfgin, cfg)
 
       return cfg
     },
