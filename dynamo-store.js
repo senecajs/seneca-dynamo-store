@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Richard Rodger and other contributors, MIT License. */
+/* Copyright (c) 2020-2021 Richard Rodger and other contributors, MIT License. */
 'use strict'
 
 const AWS = require('aws-sdk')
@@ -8,7 +8,6 @@ module.exports = dynamo_store
 module.exports.errors = {}
 
 const intern = (module.exports.intern = make_intern())
-
 
 // TODO: default:true should the default in both cases, as
 // lambda is now the most common case.
@@ -118,30 +117,33 @@ function make_intern() {
     },
 
     // TODO: seneca-entity should provide this
-    entity_options: function(ent, ctx) {
+    entity_options: function (ent, ctx) {
       let canonkey = ent.canon$()
 
       // NOTE: canonkey in options can omit empty canon parts, and zone
       // so that canonkey can match seneca.entity abbreviated canon
       let entopts =
-          ctx.options.entity[canonkey] ||
-          ctx.options.entity[canonkey.replace(/^-\//,'')] ||
-          ctx.options.entity[canonkey.replace(/^-\/-\//,'')] ||
-          ctx.options.entity[canonkey.replace(/^[^/]+\/([^/]+\/[^/]+)$/,'$1')]
+        ctx.options.entity[canonkey] ||
+        ctx.options.entity[canonkey.replace(/^-\//, '')] ||
+        ctx.options.entity[canonkey.replace(/^-\/-\//, '')] ||
+        ctx.options.entity[canonkey.replace(/^[^/]+\/([^/]+\/[^/]+)$/, '$1')]
 
       // TODO: use a separate cache for resolved canon ref
-      ctx.options.entity[canonkey] = (ctx.options.entity[canonkey] || entopts)
-      
+      ctx.options.entity[canonkey] = ctx.options.entity[canonkey] || entopts
+
       return entopts
     },
 
     table: function (ent, ctx) {
       let table_name = null
       let entopts = intern.entity_options(ent, ctx)
-      if(null != entopts && null != entopts.table && null != entopts.table.name) {
+      if (
+        null != entopts &&
+        null != entopts.table &&
+        null != entopts.table.name
+      ) {
         table_name = entopts.table.name
-      }
-      else {
+      } else {
         let canon = ent.canon$({ object: true })
         table_name = (canon.base ? canon.base + '_' : '') + canon.name
       }
@@ -245,11 +247,18 @@ function make_intern() {
             var cq_key_count = Object.keys(cq).length
 
             if (0 < cq_key_count) {
-              return intern.list(ctx, seneca, qent, table, cq, function (err, reslist) {
-                if (err) return reply(err)
+              return intern.list(
+                ctx,
+                seneca,
+                qent,
+                table,
+                cq,
+                function (err, reslist) {
+                  if (err) return reply(err)
 
-                return reply(reslist ? reslist[0] : null)
-              })
+                  return reply(reslist ? reslist[0] : null)
+                }
+              )
             } else {
               return reply()
             }
@@ -384,13 +393,16 @@ function make_intern() {
 
       var scanreq = {
         TableName: table,
-        ScanFilter: Object.keys(q).reduce((o, k) => (
-          (o[k] = {
-            ComparisonOperator: isarr(q[k]) ? 'IN' : 'EQ',
-            AttributeValueList: isarr(q[k]) ? q[k] : [q[k]],
-          }),
-          o
-        ), {})
+        ScanFilter: Object.keys(q).reduce(
+          (o, k) => (
+            (o[k] = {
+              ComparisonOperator: isarr(q[k]) ? 'IN' : 'EQ',
+              AttributeValueList: isarr(q[k]) ? q[k] : [q[k]],
+            }),
+            o
+          ),
+          {}
+        ),
       }
 
       return ctx.dc.scan(scanreq, function (scanerr, scanres) {
@@ -413,7 +425,7 @@ function make_intern() {
       // var entity_options = ctx.options.entity[canonkey]
 
       let entity_options = intern.entity_options(ent, ctx)
-      
+
       if (entity_options) {
         var fields = entity_options.fields || {}
         Object.keys(fields).forEach((fn) => {
@@ -435,7 +447,7 @@ function make_intern() {
       // var entity_options = ctx.options.entity[canonkey]
 
       let entity_options = intern.entity_options(ent, ctx)
-      
+
       if (entity_options) {
         var fields = entity_options.fields || {}
         Object.keys(fields).forEach((fn) => {

@@ -70,30 +70,27 @@ lab.describe('legacy-store-test', () => {
         // for special handling
         fields: {
           wen: {
-            type: 'date'
-          }
-        }
-      }
-    }
+            type: 'date',
+          },
+        },
+      },
+    },
   }
-
 
   const si = make_seneca({ plugin })
 
   lab.before(() => si.ready())
 
-
   const si_merge = make_seneca({
-    plugin: Object.assign({ merge: false }, plugin)
+    plugin: Object.assign({ merge: false }, plugin),
   })
 
   lab.before(() => si_merge.ready())
 
-
   LegacyStoreTest.basictest({
     seneca: si,
     senecaMerge: si_merge,
-    script: lab
+    script: lab,
   })
 })
 
@@ -111,9 +108,9 @@ var plugin = {
     // Custom table name
     'test/custom': {
       table: {
-        name: 'custom01'
-      }
-    }
+        name: 'custom01',
+      },
+    },
   },
 }
 
@@ -132,18 +129,15 @@ lab.test('store-save', async () => {
   await testrun.store_save({ seneca: si, expect, xlog: console.log })
 })
 
-
 lab.test('custom-table', async () => {
   var si = make_seneca({ plugin })
-  let c0 = await si.entity('test/custom').data$({w:Date.now()}).save$()
+  let c0 = await si.entity('test/custom').data$({ w: Date.now() }).save$()
   let c0o = await si.entity('test/custom').load$(c0.id)
   expect(c0o.w).equal(c0.w)
   let c0s = await si.entity('test/custom').list$()
   // console.log(c0s)
   expect(c0s.length).above(0)
 })
-
-
 
 // TODO: list: IN queries
 
