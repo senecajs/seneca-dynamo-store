@@ -107,23 +107,43 @@ var plugin = {
         },
       },
     },
+
+    // Custom table name
+    'test/custom': {
+      table: {
+        name: 'custom01'
+      }
+    }
   },
 }
 
 lab.test('store-core', async () => {
   var si = make_seneca({ plugin })
-  await testrun.store_core({ seneca: si, expect, log: console.log })
+  await testrun.store_core({ seneca: si, expect, xlog: console.log })
 })
 
 lab.test('store-load', async () => {
   var si = make_seneca({ plugin })
-  await testrun.store_load({ seneca: si, expect, log: console.log })
+  await testrun.store_load({ seneca: si, expect, xlog: console.log })
 })
 
 lab.test('store-save', async () => {
   var si = make_seneca({ plugin })
-  await testrun.store_save({ seneca: si, expect, log: console.log })
+  await testrun.store_save({ seneca: si, expect, xlog: console.log })
 })
+
+
+lab.test('custom-table', async () => {
+  var si = make_seneca({ plugin })
+  let c0 = await si.entity('test/custom').data$({w:Date.now()}).save$()
+  let c0o = await si.entity('test/custom').load$(c0.id)
+  expect(c0o.w).equal(c0.w)
+  let c0s = await si.entity('test/custom').list$()
+  // console.log(c0s)
+  expect(c0s.length).above(0)
+})
+
+
 
 // TODO: list: IN queries
 

@@ -9,6 +9,9 @@ module.exports.errors = {}
 
 const intern = (module.exports.intern = make_intern())
 
+
+// TODO: default:true should the default in both cases, as
+// lambda is now the most common case.
 module.exports.defaults = {
   test: false,
 
@@ -86,6 +89,7 @@ function make_intern() {
   return {
     PV: 1, // persistence version, used for data migration
 
+    // TODO: why is this needed?
     clean_config: function (cfgin) {
       let cfg = { ...cfgin }
       for (let prop in cfg) {
@@ -113,10 +117,35 @@ function make_intern() {
       )
     },
 
-    get_table: function (ent) {
-      var canon = ent.canon$({ object: true })
-      var table = (canon.base ? canon.base + '_' : '') + canon.name
-      return table
+    // TODO: seneca-entity should provide this
+    entity_options: function(ent, ctx) {
+      let canonkey = ent.canon$()
+
+      // NOTE: canonkey in options can omit empty canon parts, and zone
+      // so that canonkey can match seneca.entity abbreviated canon
+      let entopts =
+          ctx.options.entity[canonkey] ||
+          ctx.options.entity[canonkey.replace(/^-\//,'')] ||
+          ctx.options.entity[canonkey.replace(/^-\/-\//,'')] ||
+          ctx.options.entity[canonkey.replace(/^[^/]+\/([^/]+\/[^/]+)$/,'$1')]
+
+      // TODO: use a separate cache for resolved canon ref
+      ctx.options.entity[canonkey] = (ctx.options.entity[canonkey] || entopts)
+      
+      return entopts
+    },
+
+    table: function (ent, ctx) {
+      let table_name = null
+      let entopts = intern.entity_options(ent, ctx)
+      if(null != entopts && null != entopts.table && null != entopts.table.name) {
+        table_name = entopts.table.name
+      }
+      else {
+        let canon = ent.canon$({ object: true })
+        table_name = (canon.base ? canon.base + '_' : '') + canon.name
+      }
+      return table_name
     },
 
     has_error: function (seneca, err, ctx, reply) {
@@ -142,7 +171,7 @@ function make_intern() {
           var ent = msg.ent
 
           var update = null != ent.id
-          var table = intern.get_table(ent)
+          var table = intern.table(ent, ctx)
           var data = ent.data$(false)
           var q = msg.q || {}
 
@@ -207,7 +236,7 @@ function make_intern() {
           var seneca = this
           var qent = msg.qent
           var q = msg.q
-          var table = intern.get_table(qent)
+          var table = intern.table(qent, ctx)
 
           var qid = q.id
 
@@ -236,7 +265,7 @@ function make_intern() {
           var seneca = this
           var qent = msg.qent
           var q = msg.q
-          var table = intern.get_table(qent)
+          var table = intern.table(qent, ctx)
 
           intern.list(ctx, seneca, qent, table, q, reply)
         },
@@ -245,7 +274,7 @@ function make_intern() {
           var seneca = this
           var qent = msg.qent
           var q = msg.q
-          var table = intern.get_table(qent)
+          var table = intern.table(qent, ctx)
 
           var all = true === q.all$
           var load = true === q.load$
@@ -379,12 +408,14 @@ function make_intern() {
     inbound: function (ctx, ent, data) {
       if (null == data) return null
 
-      var canon = ent.canon$({ object: true })
-      var canonkey = canon.base + '/' + canon.name
-      var entity = ctx.options.entity[canonkey]
+      // var canon = ent.canon$({ object: true })
+      // var canonkey = canon.base + '/' + canon.name
+      // var entity_options = ctx.options.entity[canonkey]
 
-      if (entity) {
-        var fields = entity.fields || {}
+      let entity_options = intern.entity_options(ent, ctx)
+      
+      if (entity_options) {
+        var fields = entity_options.fields || {}
         Object.keys(fields).forEach((fn) => {
           var fs = fields[fn] || {}
           var type = fs.type
@@ -399,12 +430,14 @@ function make_intern() {
     outbound: function (ctx, ent, data) {
       if (null == data) return null
 
-      var canon = ent.canon$({ object: true })
-      var canonkey = canon.base + '/' + canon.name
-      var entity = ctx.options.entity[canonkey]
+      // var canon = ent.canon$({ object: true })
+      // var canonkey = canon.base + '/' + canon.name
+      // var entity_options = ctx.options.entity[canonkey]
 
-      if (entity) {
-        var fields = entity.fields || {}
+      let entity_options = intern.entity_options(ent, ctx)
+      
+      if (entity_options) {
+        var fields = entity_options.fields || {}
         Object.keys(fields).forEach((fn) => {
           var fs = fields[fn] || {}
           var type = fs.type
