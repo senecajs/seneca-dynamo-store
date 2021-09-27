@@ -421,7 +421,12 @@ function make_intern() {
       }
 
       if (q.fields$) {
-        scanreq.ProjectionExpression = q.fields$.join(',')
+        scanreq.ProjectionExpression = q.fields$.map((n) => '#' + n).join(',')
+        q.fields$.reduce(
+          (a, k) => ((a['#' + k] = k), a),
+          (scanreq.ExpressionAttributeNames =
+            scanreq.ExpressionAttributeNames || {})
+        )
       }
 
       // console.dir(scanreq,{depth:null})

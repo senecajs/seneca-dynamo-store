@@ -1,3 +1,8 @@
+## 0.8.1 2021-09-27
+
+* Fix ProjectionExpression names
+
+
 ## 0.8.0 2021-09-27
 
 * Support field$ directive on lists
