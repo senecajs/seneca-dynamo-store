@@ -444,7 +444,7 @@ function make_intern() {
           }
 
           if (scanres.LastEvaluatedKey) {
-            setImmediate(page, scanres.ExclusiveStartKey)
+            setImmediate(() => page(scanres.ExclusiveStartKey))
           } else {
             return reply(null, out_list)
           }
