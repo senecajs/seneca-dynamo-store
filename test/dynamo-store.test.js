@@ -131,15 +131,36 @@ lab.test('store-save', async () => {
 
 lab.test('custom-table', async () => {
   var si = make_seneca({ plugin })
-  let c0 = await si.entity('test/custom').data$({ w: Date.now() }).save$()
+  let c0 = await si
+    .entity('test/custom')
+    .data$({ w: Date.now(), x: 1, y: 'a' })
+    .save$()
+
   let c0o = await si.entity('test/custom').load$(c0.id)
   expect(c0o.w).equal(c0.w)
-  let c0s = await si.entity('test/custom').list$()
+
+  let c0s = await si
+    .entity('test/custom')
+    .list$({ fields$: ['x'], x: 1, y: 'a' })
   // console.log(c0s)
   expect(c0s.length).above(0)
-})
+  expect(c0s[0].w).not.exist()
 
-// TODO: list: IN queries
+  let c0sA = await si.entity('test/custom').list$()
+  // console.log(c0sA)
+  expect(c0sA.length).above(0)
+
+  let c0oA = await si.entity('test/custom').load$({ w: c0.w })
+  // console.log(c0oA)
+  // console.log(c0)
+  expect(c0oA.id).equal(c0.id)
+
+  let cl0 = await si.entity('test/custom').list$({ x: 1, y: 'a' })
+  expect(cl0.length).above(0)
+
+  let cl1 = await si.entity('test/custom').list$({ x: [1], y: 'a' })
+  expect(cl1.length).above(0)
+})
 
 const testrun = {
   store_core: async function (opts) {

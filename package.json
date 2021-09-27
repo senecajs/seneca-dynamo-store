@@ -1,7 +1,7 @@
 {
   "name": "@seneca/dynamo-store",
   "description": "DynamoDB store for Seneca",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "keywords": [
     "seneca",
     "dynamo",
@@ -46,14 +46,14 @@
     "node": ">=10"
   },
   "dependencies": {
-    "aws-sdk": "2.982.0"
+    "aws-sdk": "2.995.0"
   },
   "devDependencies": {
     "coveralls": "3.1.1",
-    "prettier": "2.3.2",
-    "seneca": "3.23.3",
+    "prettier": "2.4.1",
+    "seneca": "3.24.0",
     "seneca-doc": "2.1.3",
-    "seneca-entity": "14.0.0",
+    "seneca-entity": "14.1.0",
     "seneca-joi": "7.0.2",
     "seneca-msg-test": "3.2.0",
     "seneca-plugin-validator": "0.6.1",

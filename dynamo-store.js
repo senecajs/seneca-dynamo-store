@@ -243,25 +243,22 @@ function make_intern() {
           var qid = q.id
 
           if (null == qid) {
-            var cq = seneca.util.clean(q)
-            var cq_key_count = Object.keys(cq).length
-
-            if (0 < cq_key_count) {
-              return intern.list(
-                ctx,
-                seneca,
-                qent,
-                table,
-                cq,
-                function (err, reslist) {
-                  if (err) return reply(err)
-
-                  return reply(reslist ? reslist[0] : null)
-                }
-              )
-            } else {
+            if (0 === Object.keys(seneca.util.clean(q)).length) {
               return reply()
             }
+
+            return intern.list(
+              ctx,
+              seneca,
+              qent,
+              table,
+              q,
+              function (err, reslist) {
+                if (err) return reply(err)
+
+                return reply(reslist ? reslist[0] : null)
+              }
+            )
           }
 
           // Load by id
@@ -387,23 +384,47 @@ function make_intern() {
       var isarr = Array.isArray
       if (isarr(q) || 'object' != typeof q) {
         q = { id: q }
-      } else {
-        q = seneca.util.clean(q)
       }
 
       var scanreq = {
         TableName: table,
-        ScanFilter: Object.keys(q).reduce(
-          (o, k) => (
-            (o[k] = {
-              ComparisonOperator: isarr(q[k]) ? 'IN' : 'EQ',
-              AttributeValueList: isarr(q[k]) ? q[k] : [q[k]],
-            }),
-            o
+      }
+
+      let cq = seneca.util.clean(q)
+      if (0 < Object.keys(cq).length) {
+        scanreq.FilterExpression = Object.keys(cq)
+          .map((k) =>
+            isarr(cq[k])
+              ? '(' +
+                cq[k]
+                  .map((v, i) => '#' + k + ' = :' + k + i + 'n')
+                  .join(' or ') +
+                ')'
+              : '#' + k + ' = :' + k + 'n'
+          )
+          .join(' and ')
+
+        scanreq.ExpressionAttributeNames = Object.keys(cq).reduce(
+          (a, k) => ((a['#' + k] = k), a),
+          {}
+        )
+
+        scanreq.ExpressionAttributeValues = Object.keys(cq).reduce(
+          (a, k) => (
+            isarr(cq[k])
+              ? cq[k].map((v, i) => (a[':' + k + i + 'n'] = v))
+              : (a[':' + k + 'n'] = cq[k]),
+            a
           ),
           {}
-        ),
+        )
       }
+
+      if (q.fields$) {
+        scanreq.ProjectionExpression = q.fields$.join(',')
+      }
+
+      // console.dir(scanreq,{depth:null})
 
       return ctx.dc.scan(scanreq, function (scanerr, scanres) {
         if (intern.has_error(seneca, scanerr, ctx, reply)) return
