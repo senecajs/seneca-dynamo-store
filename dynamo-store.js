@@ -431,16 +431,27 @@ function make_intern() {
 
       // console.dir(scanreq,{depth:null})
 
-      return ctx.dc.scan(scanreq, function (scanerr, scanres) {
-        if (intern.has_error(seneca, scanerr, ctx, reply)) return
+      let out_list = []
+      function page(paramExclusiveStartKey) {
+        if (null != paramExclusiveStartKey) {
+          scanreq.ExclusiveStartKey = paramExclusiveStartKey
+        }
+        ctx.dc.scan(scanreq, function (scanerr, scanres) {
+          if (intern.has_error(seneca, scanerr, ctx, reply)) return
 
-        var out_list =
-          null == scanres.Items
-            ? []
-            : scanres.Items.map((item) => qent.make$(item))
+          if (null != scanres.Items) {
+            scanres.Items.map((item) => out_list.push(qent.make$(item)))
+          }
 
-        return reply(null, out_list)
-      })
+          if (scanres.LastEvaluatedKey) {
+            setImmediate(page, scanres.ExclusiveStartKey)
+          } else {
+            return reply(null, out_list)
+          }
+        })
+      }
+
+      page()
     },
 
     inbound: function (ctx, ent, data) {
