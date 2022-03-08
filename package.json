@@ -17,9 +17,10 @@
   "license": "MIT",
   "main": "dynamo-store.js",
   "scripts": {
-    "migrate-for-test": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 node ./test/support/db/create-test-tables.js",
-    "rollback-for-test": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 node ./test/support/db/delete-test-tables.js",
-    "list-test-tables": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 node ./test/support/db/list-test-tables.js",
+    "test-docker": "docker run -d -p 18000:8000 amazon/dynamodb-local",
+    "test-create-db": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 node ./test/support/db/create-test-tables.js",
+    "test-delete-db": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 node ./test/support/db/delete-test-tables.js",
+    "test-list-tables": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 node ./test/support/db/list-test-tables.js",
     "test": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 lab -v -L  -t 50 -P '\\.test' test -r console -o stdout -r html -o test/coverage.html",
     "test-some": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 lab -v -L -P '\\.test' test -r console -g ",
     "test-msgs": "lab -t 50 -P messages.test -r console -o stdout -r html -o test/coverage.html",
