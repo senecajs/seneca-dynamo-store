@@ -1,7 +1,7 @@
 {
   "name": "@seneca/dynamo-store",
   "description": "DynamoDB store for Seneca",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "keywords": [
     "seneca",
     "dynamo",
@@ -45,10 +45,8 @@
   "engines": {
     "node": ">=10"
   },
-  "dependencies": {
-    "aws-sdk": "2.1078.0"
-  },
   "devDependencies": {
+    "aws-sdk": "^2.1088.0",
     "coveralls": "3.1.1",
     "prettier": "2.5.1",
     "seneca": "3.25.0",
