@@ -185,64 +185,6 @@ function make_intern() {
           data = intern.inbound(ctx, ent, data)
 
 
-          // TODO: Tidy up.
-          //
-          async function do_upsert(ctx, args) {
-            const { upsert_fields, table, doc, new_id } = args
-
-            const scanned = await ctx.dc.scan({
-              TableName: table,
-              ScanFilter: upsert_fields.reduce((acc, k) => {
-                if (null == doc[k]) {
-                  acc[k] = {
-                    ComparisonOperator: 'NULL'
-                  }
-                } else {
-                  acc[k] = {
-                    ComparisonOperator: 'EQ',
-                    AttributeValueList: Array.isArray(doc[k]) ? doc[k] : [doc[k]]
-                  }
-                }
-
-                return acc
-              }, {})
-            }).promise()
-
-
-            if (0 === scanned.Items.length) {
-              await ctx.dc.put({
-                TableName: table,
-                Item: { ...doc, id: new_id }
-              }).promise()
-
-              return { id: new_id }
-            }
-
-
-            const [item,] = scanned.Items
-
-            await ctx.dc.update({
-              TableName: table,
-
-              Key: { id: item.id },
-
-              AttributeUpdates: Object.keys(doc)
-                .filter(k => !upsert_fields.includes(k))
-                .reduce((acc, k) => {
-                  acc[k] = {
-                    Action: 'PUT',
-                    Value: doc[k]
-                  }
-
-                  return acc
-                }, {})
-            }).promise()
-
-
-            return { id: item.id }
-          }
-
-
           // Create new Item.
           if (!update) {
             let new_id = ent.id$
@@ -343,6 +285,64 @@ function make_intern() {
 
             return upsert ? upsert_fields : null
           }
+
+
+          async function do_upsert(ctx, args) {
+            const { upsert_fields, table, doc, new_id } = args
+
+            const scanned = await ctx.dc.scan({
+              TableName: table,
+              ScanFilter: upsert_fields.reduce((acc, k) => {
+                if (null == doc[k]) {
+                  acc[k] = {
+                    ComparisonOperator: 'NULL'
+                  }
+                } else {
+                  acc[k] = {
+                    ComparisonOperator: 'EQ',
+                    AttributeValueList: Array.isArray(doc[k]) ? doc[k] : [doc[k]]
+                  }
+                }
+
+                return acc
+              }, {})
+            }).promise()
+
+
+            if (0 === scanned.Items.length) {
+              await ctx.dc.put({
+                TableName: table,
+                Item: { ...doc, id: new_id }
+              }).promise()
+
+              return { id: new_id }
+            }
+
+
+            const [item,] = scanned.Items
+
+            await ctx.dc.update({
+              TableName: table,
+
+              Key: { id: item.id },
+
+              AttributeUpdates: Object.keys(doc)
+                .filter(k => !upsert_fields.includes(k))
+                .reduce((acc, k) => {
+                  acc[k] = {
+                    Action: 'PUT',
+                    Value: doc[k]
+                  }
+
+                  return acc
+                }, {})
+            }).promise()
+
+
+            return { id: item.id }
+          }
+
+
         },
 
         load: function (msg, reply) {
