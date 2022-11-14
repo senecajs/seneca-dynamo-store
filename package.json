@@ -57,7 +57,7 @@
     "seneca-msg-test": "3.2.0",
     "seneca-plugin-validator": "0.6.1",
     "seneca-promisify": "2.0.0",
-    "seneca-store-test": "4.1.0"
+    "seneca-store-test": "5.1.0"
   },
   "peerDependencies": {
     "aws-sdk": "^2.1088.0"
