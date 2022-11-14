@@ -1,7 +1,7 @@
-/* Copyright (c) 2020-2021 Richard Rodger and other contributors, MIT License. */
+/* Copyright (c) 2020-2022 Richard Rodger and other contributors, MIT License. */
 'use strict'
 
-const AWS = require('aws-sdk')
+const { Required, Open } = require('gubu')
 
 module.exports = dynamo_store
 
@@ -9,27 +9,25 @@ module.exports.errors = {}
 
 const intern = (module.exports.intern = make_intern())
 
-// TODO: default:true should the default in both cases, as
-// lambda is now the most common case.
 module.exports.defaults = {
   test: false,
+
+  // Provide AWS SDK (via function) externally so that it is not dragged into lambdas.
+  sdk: Required(Function),
 
   // preserve undefined fields when saving
   merge: true,
 
-  aws: {
-    default: false,
+  aws: Open({
     region: 'region',
     endpoint: 'http://localhost:8000',
-  },
+  }),
 
   // See https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#constructor-property
-  dc: {
+  dc: Open({
     // Latest version of dynamodb supports empty strings
     convertEmptyValues: false,
-
-    default: false,
-  },
+  }),
 
   // entity meta data, by canon string
   entity: {},
@@ -58,15 +56,11 @@ function dynamo_store(options) {
   var meta = seneca.store.init(seneca, options, store)
 
   seneca.add({ init: store.name, tag: meta.tag }, function (msg, reply) {
-    if (!options.aws.default) {
-      AWS.config.update(intern.clean_config(options.aws))
-    }
-
-    if (options.dc.default) {
-      ctx.dc = new AWS.DynamoDB.DocumentClient()
-    } else {
-      ctx.dc = new AWS.DynamoDB.DocumentClient(intern.clean_config(options.dc))
-    }
+    const AWS_SDK = options.sdk()
+    AWS_SDK.config.update(intern.clean_config(options.aws))
+    ctx.dc = new AWS_SDK.DynamoDB.DocumentClient(
+      intern.clean_config(options.dc)
+    )
 
     reply()
   })
@@ -184,7 +178,6 @@ function make_intern() {
 
           data = intern.inbound(ctx, ent, data)
 
-
           // Create new Item.
           if (!update) {
             let new_id = ent.id$
@@ -193,7 +186,6 @@ function make_intern() {
               new_id = opts.generate_id(ent)
             }
 
-
             const upsert_fields = is_upsert(msg)
 
             if (null != upsert_fields) {
@@ -201,24 +193,22 @@ function make_intern() {
                 upsert_fields,
                 table,
                 doc: data,
-                new_id
+                new_id,
               })
-                .then(ups => {
+                .then((ups) => {
                   // Reload to get data as per db
                   //
                   return intern.id_get(ctx, seneca, ent, table, ups.id, reply)
                 })
-                .catch(err => {
+                .catch((err) => {
                   return intern.has_error(seneca, err, ctx, reply)
                 })
 
               return
             }
 
-
             data.id = new_id
           }
-
 
           if (!update || !merge) {
             var req = {
@@ -258,7 +248,6 @@ function make_intern() {
             })
           }
 
-
           function is_upsert(msg) {
             const { ent } = msg
             const update = null != ent.id
@@ -267,14 +256,15 @@ function make_intern() {
               return null
             }
 
-
             const { q = {} } = msg
 
             if (!Array.isArray(q.upsert$)) {
               return null
+            } else {
+              throw new Error('DO NOT USE - UNDER CONSTRUCTION')
             }
 
-
+            /* TODO: fix upsert
             const upsert_fields = q.upsert$
               .filter(field => -1 === field.indexOf('$'))
 
@@ -283,66 +273,71 @@ function make_intern() {
             const upsert = upsert_fields.length > 0 &&
               upsert_fields.every((p) => p in public_entdata)
 
-            return upsert ? upsert_fields : null
+              return upsert ? upsert_fields : null
+            */
           }
-
 
           async function do_upsert(ctx, args) {
             const { upsert_fields, table, doc, new_id } = args
 
-            const scanned = await ctx.dc.scan({
-              TableName: table,
-              ScanFilter: upsert_fields.reduce((acc, k) => {
-                if (null == doc[k]) {
-                  acc[k] = {
-                    ComparisonOperator: 'NULL'
-                  }
-                } else {
-                  acc[k] = {
-                    ComparisonOperator: 'EQ',
-                    AttributeValueList: Array.isArray(doc[k]) ? doc[k] : [doc[k]]
-                  }
-                }
+            // TODO: redesign - will not work
 
-                return acc
-              }, {})
-            }).promise()
+            const scanned = await ctx.dc
+              .scan({
+                TableName: table,
+                ScanFilter: upsert_fields.reduce((acc, k) => {
+                  if (null == doc[k]) {
+                    acc[k] = {
+                      ComparisonOperator: 'NULL',
+                    }
+                  } else {
+                    acc[k] = {
+                      ComparisonOperator: 'EQ',
+                      AttributeValueList: Array.isArray(doc[k])
+                        ? doc[k]
+                        : [doc[k]],
+                    }
+                  }
 
+                  return acc
+                }, {}),
+              })
+              .promise()
 
             if (0 === scanned.Items.length) {
-              await ctx.dc.put({
-                TableName: table,
-                Item: { ...doc, id: new_id }
-              }).promise()
+              await ctx.dc
+                .put({
+                  TableName: table,
+                  Item: { ...doc, id: new_id },
+                })
+                .promise()
 
               return { id: new_id }
             }
 
+            const [item] = scanned.Items
 
-            const [item,] = scanned.Items
+            await ctx.dc
+              .update({
+                TableName: table,
 
-            await ctx.dc.update({
-              TableName: table,
+                Key: { id: item.id },
 
-              Key: { id: item.id },
+                AttributeUpdates: Object.keys(doc)
+                  .filter((k) => !upsert_fields.includes(k))
+                  .reduce((acc, k) => {
+                    acc[k] = {
+                      Action: 'PUT',
+                      Value: doc[k],
+                    }
 
-              AttributeUpdates: Object.keys(doc)
-                .filter(k => !upsert_fields.includes(k))
-                .reduce((acc, k) => {
-                  acc[k] = {
-                    Action: 'PUT',
-                    Value: doc[k]
-                  }
-
-                  return acc
-                }, {})
-            }).promise()
-
+                    return acc
+                  }, {}),
+              })
+              .promise()
 
             return { id: item.id }
           }
-
-
         },
 
         load: function (msg, reply) {
@@ -567,11 +562,6 @@ function make_intern() {
 
     inbound: function (ctx, ent, data) {
       if (null == data) return null
-
-      // var canon = ent.canon$({ object: true })
-      // var canonkey = canon.base + '/' + canon.name
-      // var entity_options = ctx.options.entity[canonkey]
-
       let entity_options = intern.entity_options(ent, ctx)
 
       if (entity_options) {
@@ -589,11 +579,6 @@ function make_intern() {
 
     outbound: function (ctx, ent, data) {
       if (null == data) return null
-
-      // var canon = ent.canon$({ object: true })
-      // var canonkey = canon.base + '/' + canon.name
-      // var entity_options = ctx.options.entity[canonkey]
-
       let entity_options = intern.entity_options(ent, ctx)
 
       if (entity_options) {

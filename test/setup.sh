@@ -17,7 +17,8 @@ aws dynamodb list-tables --endpoint-url http://localhost:18000 --profile localte
 open http://localhost:18000/shell
 
 # create test tables
-node create.js
+# node create.js
+node support/db/create-test-tables.js 
 
 # check test tables exist
 aws dynamodb list-tables --endpoint-url http://localhost:18000 --profile localtest
