@@ -1,7 +1,7 @@
 {
   "name": "@seneca/dynamo-store",
   "description": "DynamoDB store for Seneca",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "keywords": [
     "seneca",
     "dynamo",
