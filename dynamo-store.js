@@ -18,10 +18,7 @@ module.exports.defaults = {
   // preserve undefined fields when saving
   merge: true,
 
-  aws: Open({
-    region: 'region',
-    endpoint: 'http://localhost:8000',
-  }),
+  aws: Open({}),
 
   // See https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#constructor-property
   dc: Open({

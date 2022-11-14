@@ -33,6 +33,7 @@ function make_seneca(config) {
           {
             sdk: () => AWS_SDK,
             aws: {
+              region: 'region',
               endpoint:
                 process.env.SENECA_DYNAMO_ENDPOINT || 'http://localhost:18000',
               accessKeyId: 'none',
