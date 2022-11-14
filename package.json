@@ -59,6 +59,9 @@
     "seneca-promisify": "2.0.0",
     "seneca-store-test": "4.1.0"
   },
+  "peerDependencies": {
+    "aws-sdk": "^2.1088.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/senecajs/seneca-dynamo-store.git"

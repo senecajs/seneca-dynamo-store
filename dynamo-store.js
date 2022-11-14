@@ -184,16 +184,41 @@ function make_intern() {
 
           data = intern.inbound(ctx, ent, data)
 
+
           // Create new Item.
           if (!update) {
-            var id = ent.id$
+            let new_id = ent.id$
 
-            if (null == id) {
-              id = opts.generate_id(ent)
+            if (null == new_id) {
+              new_id = opts.generate_id(ent)
             }
 
-            data.id = id
+
+            const upsert_fields = is_upsert(msg)
+
+            if (null != upsert_fields) {
+              do_upsert(ctx, {
+                upsert_fields,
+                table,
+                doc: data,
+                new_id
+              })
+                .then(ups => {
+                  // Reload to get data as per db
+                  //
+                  return intern.id_get(ctx, seneca, ent, table, ups.id, reply)
+                })
+                .catch(err => {
+                  return intern.has_error(seneca, err, ctx, reply)
+                })
+
+              return
+            }
+
+
+            data.id = new_id
           }
+
 
           if (!update || !merge) {
             var req = {
@@ -232,6 +257,92 @@ function make_intern() {
               return intern.id_get(ctx, seneca, ent, table, data.id, reply)
             })
           }
+
+
+          function is_upsert(msg) {
+            const { ent } = msg
+            const update = null != ent.id
+
+            if (update) {
+              return null
+            }
+
+
+            const { q = {} } = msg
+
+            if (!Array.isArray(q.upsert$)) {
+              return null
+            }
+
+
+            const upsert_fields = q.upsert$
+              .filter(field => -1 === field.indexOf('$'))
+
+            const public_entdata = ent.data$(false)
+
+            const upsert = upsert_fields.length > 0 &&
+              upsert_fields.every((p) => p in public_entdata)
+
+            return upsert ? upsert_fields : null
+          }
+
+
+          async function do_upsert(ctx, args) {
+            const { upsert_fields, table, doc, new_id } = args
+
+            const scanned = await ctx.dc.scan({
+              TableName: table,
+              ScanFilter: upsert_fields.reduce((acc, k) => {
+                if (null == doc[k]) {
+                  acc[k] = {
+                    ComparisonOperator: 'NULL'
+                  }
+                } else {
+                  acc[k] = {
+                    ComparisonOperator: 'EQ',
+                    AttributeValueList: Array.isArray(doc[k]) ? doc[k] : [doc[k]]
+                  }
+                }
+
+                return acc
+              }, {})
+            }).promise()
+
+
+            if (0 === scanned.Items.length) {
+              await ctx.dc.put({
+                TableName: table,
+                Item: { ...doc, id: new_id }
+              }).promise()
+
+              return { id: new_id }
+            }
+
+
+            const [item,] = scanned.Items
+
+            await ctx.dc.update({
+              TableName: table,
+
+              Key: { id: item.id },
+
+              AttributeUpdates: Object.keys(doc)
+                .filter(k => !upsert_fields.includes(k))
+                .reduce((acc, k) => {
+                  acc[k] = {
+                    Action: 'PUT',
+                    Value: doc[k]
+                  }
+
+                  return acc
+                }, {})
+            }).promise()
+
+
+            return { id: item.id }
+          }
+
+
         },
 
         load: function (msg, reply) {

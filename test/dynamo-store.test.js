@@ -92,6 +92,11 @@ lab.describe('legacy-store-test', () => {
     senecaMerge: si_merge,
     script: lab,
   })
+
+  LegacyStoreTest.upserttest({
+    seneca: si,
+    script: lab
+  })
 })
 
 var plugin = {
