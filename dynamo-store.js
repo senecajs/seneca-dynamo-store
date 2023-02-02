@@ -88,8 +88,6 @@ function make_intern() {
         }
       }
 
-      // console.log('SENECA DYNAMO STORE CLEAN CONFIG', cfgin, cfg)
-
       return cfg
     },
 
@@ -210,11 +208,12 @@ function make_intern() {
           if (!update || !merge) {
             var req = {
               TableName: table,
+              ConditionExpression: 'attribute_not_exists(id)',
               Item: data,
             }
 
             ctx.dc.put(req, function (err, res) {
-              if (intern.has_error(seneca, err, ctx, reply)) return
+              if (intern.has_error(seneca, err, ctx, reply)) return undefined
 
               // Reload to get data as per db
               return intern.id_get(ctx, seneca, ent, table, data.id, reply)
@@ -531,8 +530,6 @@ function make_intern() {
             scanreq.ExpressionAttributeNames || {})
         )
       }
-
-      // console.dir(scanreq,{depth:null})
 
       let out_list = []
       function page(paramExclusiveStartKey) {

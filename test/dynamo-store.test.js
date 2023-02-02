@@ -59,6 +59,32 @@ lab.test('happy', async () => {
   expect(si.find_plugin('dynamo-store$2')).exists()
 })
 
+lab.test('no-dups', async () => {
+  var si = make_seneca()
+  await si.ready()
+  si.quiet()
+
+  let list = await si.entity('uniq01').list$()
+  for (let entry of list) {
+    await entry.remove$()
+  }
+
+  let a0 = await si.entity('uniq01').save$({ id$: 'a0', x: 1, d: Date.now() })
+  expect(a0.id).equal('a0')
+
+  try {
+    let a0d = await si.entity('uniq01').save$({ id$: 'a0', x: 2 })
+    console.log(a0d)
+  } catch (e) {
+    // console.log(e)
+    expect(e).exist()
+  }
+
+  list = await si.entity('uniq01').list$()
+  // console.log(list)
+  expect(list.length).equal(1)
+})
+
 lab.test('export', async () => {
   var si = make_seneca()
   await si.ready()

@@ -1,7 +1,7 @@
 {
   "name": "@seneca/dynamo-store",
   "description": "DynamoDB store for Seneca",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "keywords": [
     "seneca",
     "dynamo",
@@ -47,17 +47,17 @@
     "node": ">=10"
   },
   "devDependencies": {
-    "aws-sdk": "^2.1253.0",
+    "aws-sdk": "^2.1307.0",
     "coveralls": "3.1.1",
-    "prettier": "2.7.1",
+    "prettier": "2.8.3",
     "seneca": "3.29.0",
     "seneca-doc": "2.1.3",
-    "seneca-entity": "18.4.0",
+    "seneca-entity": "19.0.0",
     "seneca-joi": "7.0.2",
     "seneca-msg-test": "3.4.0",
     "seneca-plugin-validator": "0.6.1",
     "seneca-promisify": "3.4.0",
-    "seneca-store-test": "5.1.0"
+    "seneca-store-test": "5.2.0"
   },
   "repository": {
     "type": "git",
