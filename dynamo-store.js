@@ -564,11 +564,13 @@ function make_intern() {
       // hash and range key must be used together
       if (null != sortkey && null != cq.id && null != cq[sortkey]) {
         listop = 'query'
-        ;(listreq.KeyConditionExpression = `id = :hashKey and ${sortkey} = :rangeKey`),
-          (listreq.ExpressionAttributeValues = {
-            ':hashKey': cq.id,
-            ':rangeKey': cq[sortkey],
-          })
+        listreq.KeyConditionExpression = `id = :hashKey and #${sortkey}n = :rangeKey`
+        listreq.ExpressionAttributeValues = {
+          ':hashKey': cq.id,
+          ':rangeKey': cq[sortkey],
+        }
+        listreq.ExpressionAttributeNames = {}
+        listreq.ExpressionAttributeNames[`#${sortkey}n`] = sortkey
         delete fq.id
         delete fq[sortkey]
       }
@@ -582,16 +584,19 @@ function make_intern() {
           if (null != pk && null != fq[pk]) {
             listop = 'query'
             listreq.IndexName = indexdef.name
-            ;(listreq.KeyConditionExpression = `${pk} = :${pk}i`),
-              (listreq.ExpressionAttributeValues = {})
+            listreq.KeyConditionExpression = `#${pk}n = :${pk}i`
+            listreq.ExpressionAttributeValues = {}
             listreq.ExpressionAttributeValues[`:${pk}i`] = fq[pk]
+            listreq.ExpressionAttributeNames = {}
+            listreq.ExpressionAttributeNames[`#${pk}n`] = pk
 
             delete fq[pk]
 
             let sk = indexdefkey.sort
             if (null != sk && null != fq[sk]) {
-              listreq.KeyConditionExpression += ` and ${sk} = :${sk}i`
+              listreq.KeyConditionExpression += ` and #${sk}n = :${sk}i`
               listreq.ExpressionAttributeValues[`:${sk}i`] = fq[sk]
+              listreq.ExpressionAttributeNames[`#${sk}n`] = sk
               delete fq[sk]
             }
 
