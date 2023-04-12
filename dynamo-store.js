@@ -582,17 +582,16 @@ function make_intern() {
           if (null != pk && null != fq[pk]) {
             listop = 'query'
             listreq.IndexName = indexdef.name
-
-            ;(listreq.KeyConditionExpression = `${pk} = :${pk}`),
+            ;(listreq.KeyConditionExpression = `${pk} = :${pk}i`),
               (listreq.ExpressionAttributeValues = {})
-            listreq.ExpressionAttributeValues[`:${pk}`] = fq[pk]
+            listreq.ExpressionAttributeValues[`:${pk}i`] = fq[pk]
 
             delete fq[pk]
 
             let sk = indexdefkey.sort
             if (null != sk && null != fq[sk]) {
-              listreq.KeyConditionExpression += ` and ${sk} = :${sk}`
-              listreq.ExpressionAttributeValues[`:${sk}`] = fq[sk]
+              listreq.KeyConditionExpression += ` and ${sk} = :${sk}i`
+              listreq.ExpressionAttributeValues[`:${sk}i`] = fq[sk]
               delete fq[sk]
             }
 
