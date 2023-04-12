@@ -139,6 +139,19 @@ function make_intern() {
       return table_name
     },
 
+    get_table: function (ent, ctx) {
+      let entopts = intern.entity_options(ent, ctx)
+      let table = entopts && entopts.table
+
+      if (null == table || null == table.name) {
+        let canon = ent.canon$({ object: true })
+        table = table || {}
+        table.name = (canon.base ? canon.base + '_' : '') + canon.name
+      }
+
+      return table
+    },
+
     has_error: function (seneca, err, ctx, reply) {
       if (err) {
         seneca.log.error('entity', err, { store: ctx.name })
@@ -162,7 +175,7 @@ function make_intern() {
           var ent = msg.ent
 
           var update = null != ent.id
-          var table = intern.table(ent, ctx)
+          const ti = intern.get_table(ent, ctx)
           var data = ent.data$(false)
           var q = msg.q || {}
 
@@ -182,18 +195,19 @@ function make_intern() {
             }
 
             const upsert_fields = is_upsert(msg)
+            // console.log('UPF', upsert_fields)
 
             if (null != upsert_fields) {
               do_upsert(ctx, {
                 upsert_fields,
-                table,
+                name: ti.name,
                 doc: data,
                 new_id,
               })
                 .then((ups) => {
                   // Reload to get data as per db
                   //
-                  return intern.id_get(ctx, seneca, ent, table, ups.id, reply)
+                  return intern.id_get(ctx, seneca, ent, ti, ups.id, reply)
                 })
                 .catch((err) => {
                   return intern.has_error(seneca, err, ctx, reply)
@@ -207,16 +221,26 @@ function make_intern() {
 
           if (!update || !merge) {
             var req = {
-              TableName: table,
+              TableName: ti.name,
               ConditionExpression: 'attribute_not_exists(id)',
               Item: data,
             }
+
+            // console.log('PUT', req)
 
             ctx.dc.put(req, function (err, res) {
               if (intern.has_error(seneca, err, ctx, reply)) return undefined
 
               // Reload to get data as per db
-              return intern.id_get(ctx, seneca, ent, table, data.id, reply)
+              let dq = { id: data.id }
+              let sortkey = ti.key && ti.key.sort
+              if (null != sortkey) {
+                dq[sortkey] = data[sortkey]
+              }
+
+              // console.log('QQQ', dq)
+
+              return intern.id_get(ctx, seneca, ent, ti, dq, reply)
             })
           }
 
@@ -225,7 +249,7 @@ function make_intern() {
             // Build update structure
             // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#update-property
             var upreq = {
-              TableName: table,
+              TableName: ti.name,
               Key: { id: data.id },
               AttributeUpdates: Object.keys(data)
                 //.filter(k=> k!='id' && void 0!==data[k] )
@@ -236,11 +260,13 @@ function make_intern() {
                 ),
             }
 
+            // console.log('UPR', upreq)
+
             ctx.dc.update(upreq, function (uperr, upres) {
               if (intern.has_error(seneca, uperr, ctx, reply)) return
 
               // Reload to get data as per db
-              return intern.id_get(ctx, seneca, ent, table, data.id, reply)
+              return intern.id_get(ctx, seneca, ent, ti.name, data.id, reply)
             })
           }
 
@@ -340,7 +366,8 @@ function make_intern() {
           var seneca = this
           var qent = msg.qent
           var q = msg.q
-          var table = intern.table(qent, ctx)
+          const ti = intern.get_table(qent, ctx)
+          // console.log('TI', ti)
 
           var qid = q.id
 
@@ -349,11 +376,11 @@ function make_intern() {
               return reply()
             }
 
-            return intern.list(
+            return intern.listent(
               ctx,
               seneca,
               qent,
-              table,
+              ti,
               q,
               function (err, reslist) {
                 if (err) return reply(err)
@@ -365,7 +392,7 @@ function make_intern() {
 
           // Load by id
           else {
-            return intern.id_get(ctx, seneca, qent, table, qid, reply)
+            return intern.id_get(ctx, seneca, qent, ti, q, reply)
           }
         },
 
@@ -373,16 +400,18 @@ function make_intern() {
           var seneca = this
           var qent = msg.qent
           var q = msg.q
-          var table = intern.table(qent, ctx)
+          const ti = intern.get_table(qent, ctx)
 
-          intern.list(ctx, seneca, qent, table, q, reply)
+          intern.listent(ctx, seneca, qent, ti, q, reply)
         },
 
         remove: function (msg, reply) {
           var seneca = this
+          // console.log('REMOVE MSG', msg)
+
           var qent = msg.qent
           var q = msg.q
-          var table = intern.table(qent, ctx)
+          const ti = intern.get_table(qent, ctx)
 
           var all = true === q.all$
           var load = true === q.load$
@@ -390,29 +419,32 @@ function make_intern() {
           var qid = q.id
 
           if (null != qid) {
-            return remove_single_by_id(qid)
+            return remove_single_by_id(q)
           } else {
-            var cq = seneca.util.clean(q)
+            let cq = seneca.util.clean(q)
+            // console.log('CQ', cq)
 
             if (0 === Object.keys(cq).length && !all) {
               reply(seneca.error('empty-remove-query'))
             }
 
-            intern.list(ctx, seneca, qent, table, cq, function (listerr, list) {
+            intern.listent(ctx, seneca, qent, ti, cq, function (listerr, list) {
               if (intern.has_error(seneca, listerr, ctx, reply)) return
+
+              // console.log('QQQ', all, ti.name, list)
 
               if (all) {
                 var batchreq = {
                   RequestItems: {},
                 }
 
-                batchreq.RequestItems[table] = list.map((item) => ({
+                batchreq.RequestItems[ti.name] = list.map((item) => ({
                   DeleteRequest: {
                     Key: { id: item.id },
                   },
                 }))
 
-                if (0 === batchreq.RequestItems[table].length) {
+                if (0 === batchreq.RequestItems[ti.name].length) {
                   return reply()
                 }
 
@@ -423,30 +455,36 @@ function make_intern() {
                 })
               } else {
                 qid = 0 < list.length ? list[0].id : null
-                return remove_single_by_id(qid)
+                return remove_single_by_id({ id: qid })
               }
             })
           }
 
-          function remove_single_by_id(qid) {
-            if (null != qid) {
+          function remove_single_by_id(q) {
+            // console.log('RSID',q)
+            if (null != q.id) {
               if (load) {
-                intern.id_get(ctx, seneca, qent, table, qid, dc_delete)
+                intern.id_get(ctx, seneca, qent, ti, q, (err, old) =>
+                  dc_delete(q, err, old)
+                )
               } else {
-                dc_delete()
+                dc_delete(q)
               }
             } else {
               return reply()
             }
           }
 
-          function dc_delete(err, old) {
+          function dc_delete(q, err, old) {
             if (intern.has_error(seneca, err, ctx, reply)) return
 
-            var delreq = {
-              TableName: table,
-              Key: { id: qid },
-            }
+            var delreq = intern.build_req_key(
+              {
+                TableName: ti.name,
+              },
+              ti,
+              q
+            )
 
             ctx.dc.delete(delreq, function (delerr, delres) {
               if (intern.has_error(seneca, delerr, ctx, reply)) return
@@ -466,11 +504,36 @@ function make_intern() {
       return store
     },
 
-    id_get: function (ctx, seneca, ent, table, id, reply) {
-      var getreq = {
-        TableName: table,
-        Key: { id: id },
+    // Tmp converter for table parameter
+    tableinfo: (table) => {
+      let tableInfo = table
+      if ('string' === typeof tableInfo) {
+        tableInfo = { name: table }
       }
+      return tableInfo
+    },
+
+    build_req_key(req, table, q) {
+      req.Key = { id: 'string' === typeof q ? q : q.id }
+
+      let sortkey = table.key && table.key.sort
+      if (sortkey) {
+        req.Key[sortkey] = q[sortkey]
+      }
+
+      return req
+    },
+
+    id_get: function (ctx, seneca, ent, table, q, reply) {
+      let ti = intern.tableinfo(table)
+
+      const getreq = intern.build_req_key(
+        {
+          TableName: ti.name,
+        },
+        table,
+        q
+      )
 
       ctx.dc.get(getreq, function (geterr, getres) {
         if (intern.has_error(seneca, geterr, ctx, reply)) return
@@ -482,19 +545,64 @@ function make_intern() {
       })
     },
 
-    list: function (ctx, seneca, qent, table, q, reply) {
+    listent: function (ctx, seneca, qent, ti, q, reply) {
       var isarr = Array.isArray
       if (isarr(q) || 'object' != typeof q) {
         q = { id: q }
       }
 
-      var scanreq = {
-        TableName: table,
+      let listop = 'scan'
+      const sortkey = ti.key && ti.key.sort
+
+      const listreq = {
+        TableName: ti.name,
       }
 
       let cq = seneca.util.clean(q)
-      if (0 < Object.keys(cq).length) {
-        scanreq.FilterExpression = Object.keys(cq)
+      let fq = cq
+
+      // hash and range key must be used together
+      if (null != sortkey && null != cq.id && null != cq[sortkey]) {
+        listop = 'query'
+        ;(listreq.KeyConditionExpression = `id = :hashKey and ${sortkey} = :rangeKey`),
+          (listreq.ExpressionAttributeValues = {
+            ':hashKey': cq.id,
+            ':rangeKey': cq[sortkey],
+          })
+        delete fq.id
+        delete fq[sortkey]
+      }
+
+      // ignore indexes if using main keys
+      else {
+        let indexlist = ti.index || []
+        for (let indexdef of indexlist) {
+          let indexdefkey = indexdef.key || {}
+          let pk = indexdefkey.partition
+          if (null != pk && null != fq[pk]) {
+            listop = 'query'
+            listreq.IndexName = indexdef.name
+
+            ;(listreq.KeyConditionExpression = `${pk} = :${pk}`),
+              (listreq.ExpressionAttributeValues = {})
+            listreq.ExpressionAttributeValues[`:${pk}`] = fq[pk]
+
+            delete fq[pk]
+
+            let sk = indexdefkey.sort
+            if (null != sk && null != fq[sk]) {
+              listreq.KeyConditionExpression += ` and ${sk} = :${sk}`
+              listreq.ExpressionAttributeValues[`:${sk}`] = fq[sk]
+              delete fq[sk]
+            }
+
+            break // first index found wins
+          }
+        }
+      }
+
+      if (0 < Object.keys(fq).length) {
+        listreq.FilterExpression = Object.keys(cq)
           .map((k) =>
             isarr(cq[k])
               ? '(' +
@@ -506,45 +614,48 @@ function make_intern() {
           )
           .join(' and ')
 
-        scanreq.ExpressionAttributeNames = Object.keys(cq).reduce(
+        listreq.ExpressionAttributeNames = Object.keys(cq).reduce(
           (a, k) => ((a['#' + k] = k), a),
-          {}
+          listreq.ExpressionAttributeNames || {}
         )
 
-        scanreq.ExpressionAttributeValues = Object.keys(cq).reduce(
+        listreq.ExpressionAttributeValues = Object.keys(cq).reduce(
           (a, k) => (
             isarr(cq[k])
               ? cq[k].map((v, i) => (a[':' + k + i + 'n'] = v))
               : (a[':' + k + 'n'] = cq[k]),
             a
           ),
-          {}
+          listreq.ExpressionAttributeValues || {}
         )
       }
 
       if (q.fields$) {
-        scanreq.ProjectionExpression = q.fields$.map((n) => '#' + n).join(',')
+        listreq.ProjectionExpression = q.fields$.map((n) => '#' + n).join(',')
         q.fields$.reduce(
           (a, k) => ((a['#' + k] = k), a),
-          (scanreq.ExpressionAttributeNames =
-            scanreq.ExpressionAttributeNames || {})
+          (listreq.ExpressionAttributeNames =
+            listreq.ExpressionAttributeNames || {})
         )
       }
+
+      // console.log('LISTREQ', q, listop, listreq)
 
       let out_list = []
       function page(paramExclusiveStartKey) {
         if (null != paramExclusiveStartKey) {
-          scanreq.ExclusiveStartKey = paramExclusiveStartKey
+          listreq.ExclusiveStartKey = paramExclusiveStartKey
         }
-        ctx.dc.scan(scanreq, function (scanerr, scanres) {
-          if (intern.has_error(seneca, scanerr, ctx, reply)) return
 
-          if (null != scanres.Items) {
-            scanres.Items.map((item) => out_list.push(qent.make$(item)))
+        ctx.dc[listop](listreq, function (listerr, listres) {
+          if (intern.has_error(seneca, listerr, ctx, reply)) return
+
+          if (null != listres.Items) {
+            listres.Items.map((item) => out_list.push(qent.make$(item)))
           }
 
-          if (scanres.LastEvaluatedKey) {
-            setImmediate(() => page(scanres.LastEvaluatedKey))
+          if (listres.LastEvaluatedKey) {
+            setImmediate(() => page(listres.LastEvaluatedKey))
           } else {
             return reply(null, out_list)
           }
