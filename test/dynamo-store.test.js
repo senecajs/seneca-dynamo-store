@@ -220,6 +220,49 @@ lab.test('special-query', async () => {
   // console.log('END')
 })
 
+lab.test('comparison-query', async () => {
+  var si = make_seneca({
+    plugin: {
+      entity: {
+        query01: {
+          table: {
+            name: 'query01',
+            key: {
+              partition: 'id',
+              sort: 'sk0',
+            },
+            index: [
+              {
+                name: 'gsi_0',
+                key: {
+                  partition: 'ip0',
+                },
+              },
+              {
+                name: 'gsi_1',
+                key: {
+                  partition: 'ip1',
+                  sort: 'is1',
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  })
+
+  await si.ready()
+
+  // sort-key comparison
+  let qop = { ip1: 'AA', is1: { $lt: 1 } }
+  let list = await si.entity('query01').list$(qop) 
+
+  // console.log('LIST: ', list)
+  expect(list.length).equal(4)
+
+})
+
 lab.test('export', async () => {
   var si = make_seneca()
   await si.ready()

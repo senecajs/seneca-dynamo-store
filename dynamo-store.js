@@ -37,7 +37,7 @@ function dynamo_store(options) {
   options = seneca.util.deep(
     {
       // TODO: use seneca.export once it allows for null values
-      generate_id: seneca.root.private$.exports['entity/generate_id'],
+      generate_id: seneca.export('entity/generate_id'),
     },
     options
   )
@@ -560,6 +560,28 @@ function make_intern() {
 
       let cq = seneca.util.clean(q)
       let fq = cq
+      
+      function get_op(qv) {
+      
+        if(null != qv.$gte) {
+          return { c: '$gte', op: '>' }
+        }
+        if(null != qv.$gt) {
+          return { c: '$gt', op: '>=' }
+        }
+        
+        if(null != qv.$lt) {
+          return { c: '$lt', op: '<=' }
+        }
+        if(null != qv.$lte) {
+          return { c: '$lte', op: '<' }
+        }
+        if(null != qv.$ne) {
+          return { c: '$ne', op: '=' }
+        }
+        
+        return null
+      }
 
       // hash and range key must be used together
       if (null != sortkey && null != cq.id && null != cq[sortkey]) {
@@ -581,6 +603,7 @@ function make_intern() {
         for (let indexdef of indexlist) {
           let indexdefkey = indexdef.key || {}
           let pk = indexdefkey.partition
+          
           if (null != pk && null != fq[pk]) {
             listop = 'query'
             listreq.IndexName = indexdef.name
@@ -590,12 +613,15 @@ function make_intern() {
             listreq.ExpressionAttributeNames = {}
             listreq.ExpressionAttributeNames[`#${pk}n`] = pk
 
+        
+        
             delete fq[pk]
 
             let sk = indexdefkey.sort
             if (null != sk && null != fq[sk]) {
-              listreq.KeyConditionExpression += ` and #${sk}n = :${sk}i`
-              listreq.ExpressionAttributeValues[`:${sk}i`] = fq[sk]
+              let fq_op = get_op(fq[sk])
+              listreq.KeyConditionExpression += null == fq_op ? ` and #${sk}n = :${sk}i` : ` and #${sk}n ${fq_op.op} :${sk}i`
+              listreq.ExpressionAttributeValues[`:${sk}i`] = null == fq_op ? fq[sk] : fq[sk][fq_op.c]
               listreq.ExpressionAttributeNames[`#${sk}n`] = sk
               delete fq[sk]
             }
