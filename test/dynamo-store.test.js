@@ -254,12 +254,44 @@ lab.test('comparison-query', async () => {
 
   await si.ready()
 
+  await si
+    .entity('query01')
+    .save$({ id$: 'q7', sk0: 'c', ip0: 'C', ip1: 'BB', is1: 3, d: 12 })
+  await si
+    .entity('query01')
+    .save$({ id$: 'q6', sk0: 'c', ip0: 'C', ip1: 'BB', is1: 2, d: 11 })
+  await si
+    .entity('query01')
+    .save$({ id$: 'q8', sk0: 'c', ip0: 'C', ip1: 'BB', is1: 1, d: 13 })
+
   // sort-key comparison
   let qop = { ip1: 'AA', is1: { $lt: 1 } }
   let list = await si.entity('query01').list$(qop) 
-
   // console.log('LIST: ', list)
   expect(list.length).equal(4)
+  
+  qop = { d: { $ne: 10 } }
+  list = await si.entity('query01').list$(qop)
+  // console.log('LIST: ', list)
+  expect(list.length).equal(6)
+
+  qop = { d: { $gt: 10 }, ip1: 'BB', is1: { $gte: 0 } }
+  list = await si.entity('query01').list$(qop)
+  // console.log('LIST: ', list)
+  expect(list.length).equal(3)
+  
+  // descending
+  qop = { d: { $gt: 10 }, ip1: 'BB', is1: { $gt: 0 }, $sort: -1 }
+  list = await si.entity('query01').list$(qop)
+  // console.log('LIST: ', list)
+  expect(list.map((ent) => ent.is1)).equal([3, 2, 1, 0])
+
+  // ascending
+  qop = { d: { $gt: 10 }, ip1: 'BB', is1: { $lt: 3 }, $sort: 1 }
+  list = await si.entity('query01').list$(qop)
+  // console.log('LIST: ', list)
+  expect(list.map((ent) => ent.is1)).equal([0, 1, 2, 3])
+
 
 })
 

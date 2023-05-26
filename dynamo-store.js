@@ -582,6 +582,18 @@ function make_intern() {
         
         return null
       }
+      
+      if(fq.$sort != null) {
+        let sort_index = {
+          '1': true, // ascending
+          '-1': false // descending
+        }
+        let sort_mode = sort_index[fq.$sort]
+        
+        null != sort_mode && (listreq.ScanIndexForward = sort_mode)
+        delete fq.$sort
+          
+      }
 
       // hash and range key must be used together
       if (null != sortkey && null != cq.id && null != cq[sortkey]) {
@@ -633,15 +645,18 @@ function make_intern() {
 
       if (0 < Object.keys(fq).length) {
         listreq.FilterExpression = Object.keys(cq)
-          .map((k) =>
-            isarr(cq[k])
+          .map((k) => {
+            let cq_op = get_op(cq[k])
+            // console.log('CQ_OP: ', cq, cq_op)
+            return isarr(cq[k])
               ? '(' +
                 cq[k]
                   .map((v, i) => '#' + k + ' = :' + k + i + 'n')
                   .join(' or ') +
                 ')'
-              : '#' + k + ' = :' + k + 'n'
-          )
+              : null == cq_op ? ('#' + k + ' = :' + k + 'n') : ('#' + k + ` ${cq_op.op} :` + k + 'n')
+              
+          })
           .join(' and ')
 
         listreq.ExpressionAttributeNames = Object.keys(cq).reduce(
@@ -650,12 +665,14 @@ function make_intern() {
         )
 
         listreq.ExpressionAttributeValues = Object.keys(cq).reduce(
-          (a, k) => (
+          (a, k) => {
+            let cq_op = get_op(cq[k])
+            // console.log('CQ_OP: ', cq, cq_op)
             isarr(cq[k])
               ? cq[k].map((v, i) => (a[':' + k + i + 'n'] = v))
-              : (a[':' + k + 'n'] = cq[k]),
-            a
-          ),
+              : null == cq_op ? (a[':' + k + 'n'] = cq[k]) : (a[':' + k + 'n'] = cq[k][cq_op.c])
+            return a
+          },
           listreq.ExpressionAttributeValues || {}
         )
       }
