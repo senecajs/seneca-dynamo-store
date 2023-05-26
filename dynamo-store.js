@@ -623,7 +623,6 @@ function make_intern() {
             listreq.ExpressionAttributeValues[`:${pk}i`] = fq[pk]
             listreq.ExpressionAttributeNames = {}
             listreq.ExpressionAttributeNames[`#${pk}n`] = pk
-            
             delete fq[pk]
 
             let sk = indexdefkey.sort
