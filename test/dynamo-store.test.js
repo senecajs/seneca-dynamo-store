@@ -295,6 +295,78 @@ lab.test('comparison-query', async () => {
 
 })
 
+lab.test('injection-fails', async () => {
+
+  var si = make_seneca({
+    plugin: {
+      entity: {
+        query01: {
+          table: {
+            name: 'query01',
+            key: {
+              partition: 'id',
+              sort: 'sk0',
+            },
+            index: [
+              {
+                name: 'gsi_0',
+                key: {
+                  partition: 'ip0',
+                },
+              },
+              {
+                name: 'gsi_1',
+                key: {
+                  partition: 'ip1',
+                  sort: 'is1',
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  })
+
+  await si.ready()
+  si.quiet()
+
+
+  let qop = {}
+  let list = []
+
+  let q_no_results = [
+    { d: { $ne: '10 or 1 = 1' } },
+    { ip1: '*', is1: 1 }
+  ]
+
+  let q_validation_error = [
+    { 'd or 1': { $ne: 10 } }, // FilterExpression
+    { ip1: 'BB', 'is1 or 1': 1 }, // ExpressionAttributeValues/Names
+    { ip1: 'BB', is1: ' and 1 = 1' }, // ExpressionAttributeValues/Names
+  ]
+
+
+  for(let q of q_validation_error) {
+    let err = null
+    try {
+      list = await si.entity('query01').list$(q)
+    }catch(e) {
+      err = e
+      // console.error('e: ', e)
+      // expect(e).exist()
+    }
+    expect(err).not.equal(null)
+  }
+
+  for(let q of q_no_results) {
+    list = await si.entity('query01').list$(q)
+    expect(list.length).equal(0)
+  }
+
+
+})
+
 lab.test('export', async () => {
   var si = make_seneca()
   await si.ready()
