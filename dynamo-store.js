@@ -687,7 +687,7 @@ function make_intern() {
           if (intern.has_error(seneca, listerr, ctx, reply)) return
 
           if (null != listres.Items) {
-            listres.Items.map((item) => out_list.push(qent.make$(item)))
+            listres.Items.forEach((item) => out_list.push(qent.make$(item)))
           }
 
           if (listres.LastEvaluatedKey) {
