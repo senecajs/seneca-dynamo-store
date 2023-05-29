@@ -341,7 +341,7 @@ lab.test('injection-fails', async () => {
   ]
 
   let q_validation_error = [
-    { 'd or 1': { $ne: 10 } }, // FilterExpression
+    { 'd or 1': { $ne: 10 } }, // inject into FilterExpression
     { ip1: 'BB', 'is1 or 1': 1 }, // ExpressionAttributeValues/Names
     { ip1: 'BB', is1: ' and 1 = 1' }, // ExpressionAttributeValues/Names
   ]
