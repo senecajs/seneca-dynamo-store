@@ -100,10 +100,9 @@ function get_op(qv) {
 }
 
 function make_intern() {
-  const canon_ref = {}
-  
   return {
     PV: 1, // persistence version, used for data migration
+    canon_ref: {},
 
     // TODO: why is this needed?
     clean_config: function (cfgin) {
@@ -138,14 +137,14 @@ function make_intern() {
       // NOTE: canonkey in options can omit empty canon parts, and zone
       // so that canonkey can match seneca.entity abbreviated canon
       let entopts =
-        canon_ref[canonkey] ||
+        intern.canon_ref[canonkey] ||
         ctx.options.entity[canonkey] ||
         ctx.options.entity[canonkey.replace(/^-\//, '')] ||
         ctx.options.entity[canonkey.replace(/^-\/-\//, '')] ||
         ctx.options.entity[canonkey.replace(/^[^/]+\/([^/]+\/[^/]+)$/, '$1')]
 
       // TODO: use a separate cache for resolved canon ref
-      canon_ref[canonkey] = ctx.options.entity[canonkey] || entopts
+      intern.canon_ref[canonkey] = ctx.options.entity[canonkey] || entopts
 
       return entopts
     },
