@@ -75,6 +75,29 @@ function dynamo_store(options) {
   return plugin_meta
 }
 
+
+function get_op(qv) {
+  let op = 
+      null != qv.$gte ? { c: '$gte', cmpop: '>' } :
+      null != qv.$gt ? { c: '$gt', cmpop: '>=' } :
+
+      null != qv.$lt ? { c: '$lt', cmpop: '<=' } :
+      null != qv.$lte ? { c: '$lte', cmpop: '<' } :
+      null != qv.$ne ? { c: '$ne', cmpop: '=' } : null
+  // console.log('QV: ', typeof qv, qv, op)
+  if(op && 1 !== Object.keys(qv).length) {
+    throw Error('Too many operators')
+  }
+  if(!op && 'object' == typeof qv && !Array.isArray(qv)) {
+    Object.keys(qv).forEach(k => {
+      if(k.startsWith('$')) {
+        throw Error('Invalid Comparison Operator: ' + k)
+      }
+    })
+  }
+  return op
+}
+
 function make_intern() {
   return {
     PV: 1, // persistence version, used for data migration
@@ -545,21 +568,12 @@ function make_intern() {
       })
     },
 
-    get_op: (qv) =>
-      null != qv.$gte ? { c: '$gte', cmpop: '>' } :
-      null != qv.$gt ? { c: '$gt', cmpop: '>=' } :
-
-      null != qv.$lt ? { c: '$lt', cmpop: '<=' } :
-      null != qv.$lte ? { c: '$lte', cmpop: '<' } :
-      null != qv.$ne ? { c: '$ne', cmpop: '=' } : null,
-
     listent: function (ctx, seneca, qent, ti, q, reply) {
       var isarr = Array.isArray
       if (isarr(q) || 'object' != typeof q) {
         q = { id: q }
       }
 
-      const get_op = intern.get_op
       let listop = 'scan'
       const sortkey = ti.key && ti.key.sort
 
@@ -571,7 +585,7 @@ function make_intern() {
       let fq = cq
       
       
-      if(fq.$sort != null) {
+      if(null != fq.$sort) {
         let sort_index = {
           '1': true, // ascending
           '-1': false // descending

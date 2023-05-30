@@ -253,6 +253,7 @@ lab.test('comparison-query', async () => {
   })
 
   await si.ready()
+  si.quiet()
 
   await si
     .entity('query01')
@@ -292,6 +293,30 @@ lab.test('comparison-query', async () => {
   // console.log('LIST: ', list)
   expect(list.map((ent) => ent.is1)).equal([0, 1, 2, 3])
 
+})
+
+lab.test('invalid-operators', async () => {
+  let list = []
+  let qop = {}
+  let err
+
+  err = null
+  try {
+    qop = { d: { $gte: 10, $lte: 10 } }
+    list = await si.entity('query01').list$(qop)
+  }catch(e) {
+    err = e
+  }
+  expect(err).not.equal(null)
+
+  err = null
+  qop = { d: { $notAValidOp: 123 } }
+  try {
+    list = await si.entity('query01').list$(qop)
+  }catch(e) {
+    err = e
+  }
+  expect(err).not.equal(null)
 
 })
 
