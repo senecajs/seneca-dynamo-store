@@ -86,12 +86,12 @@ function get_op(qv) {
       null != qv.$ne ? { c: '$ne', cmpop: '=' } : null
   // console.log('QV: ', typeof qv, qv, op)
   if(op && 1 !== Object.keys(qv).length) {
-    throw Error('Too many operators')
+    throw new Error('Too many operators')
   }
   if(!op && 'object' == typeof qv && !Array.isArray(qv)) {
     Object.keys(qv).forEach(k => {
       if(k.startsWith('$')) {
-        throw Error('Invalid Comparison Operator: ' + k)
+        throw new Error('Invalid Comparison Operator: ' + k)
       }
     })
   }
