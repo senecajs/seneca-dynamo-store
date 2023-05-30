@@ -86,7 +86,7 @@ function get_op(qv) {
       null != qv.$ne ? { c: '$ne', cmpop: '=' } : null
   // console.log('QV: ', typeof qv, qv, op)
   if(op && 1 !== Object.keys(qv).length) {
-    throw new Error('Too many operators')
+    throw new Error('Too many params')
   }
   if(!op && 'object' == typeof qv && !Array.isArray(qv)) {
     Object.keys(qv).forEach(k => {
