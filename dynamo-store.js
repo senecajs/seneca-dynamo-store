@@ -144,7 +144,7 @@ function make_intern() {
         ctx.options.entity[canonkey.replace(/^[^/]+\/([^/]+\/[^/]+)$/, '$1')]
 
       // TODO: use a separate cache for resolved canon ref
-      intern.canon_ref[canonkey] = ctx.options.entity[canonkey] || entopts
+      intern.canon_ref[canonkey] = entopts
 
       return entopts
     },
