@@ -296,6 +296,41 @@ lab.test('comparison-query', async () => {
 })
 
 lab.test('invalid-operators', async () => {
+  var si = make_seneca({
+    plugin: {
+      entity: {
+        query01: {
+          table: {
+            name: 'query01',
+            key: {
+              partition: 'id',
+              sort: 'sk0',
+            },
+            index: [
+              {
+                name: 'gsi_0',
+                key: {
+                  partition: 'ip0',
+                },
+              },
+              {
+                name: 'gsi_1',
+                key: {
+                  partition: 'ip1',
+                  sort: 'is1',
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  })
+
+  await si.ready()
+  si.quiet()
+
+
   let list = []
   let qop = {}
   let err

@@ -89,10 +89,11 @@ function get_op(qv) {
     throw new Error('Too many params')
   }
   if(!op && 'object' == typeof qv && !Array.isArray(qv)) {
-    Object.keys(qv).forEach(k => {
+    Object.keys(qv).every(k => {
       if(k.startsWith('$')) {
         throw new Error('Invalid Comparison Operator: ' + k)
       }
+      return false // break - only check the first param
     })
   }
   return op
