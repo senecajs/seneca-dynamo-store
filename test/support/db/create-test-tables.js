@@ -370,7 +370,73 @@ const schema = [
       }
     ]
   },
- 
+  
+  {
+    "TableName": "query02",
+    "KeySchema": [
+      {
+        "KeyType": "HASH",
+        "AttributeName": "id"
+      },
+      {
+        "KeyType": "RANGE",
+        "AttributeName": "sk1"
+      }
+    ],
+    "AttributeDefinitions": [
+      {
+        "AttributeName": "is2",
+        "AttributeType": "N"
+      },
+      {
+        "AttributeName": "id",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "sk1",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "ip2",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "ip3",
+        "AttributeType": "S"
+      }
+    ],
+    "BillingMode": "PAY_PER_REQUEST",
+    "GlobalSecondaryIndexes": [
+      {
+        "IndexName": "gsi_2",
+        "Projection": {
+          "ProjectionType": "ALL"
+        },
+        "KeySchema": [
+          {
+            "AttributeName": "ip2",
+            "KeyType": "HASH"
+          },
+        ],
+      },
+      {
+        "IndexName": "gsi_3",
+        "Projection": {
+          "ProjectionType": "ALL"
+        },
+        "KeySchema": [
+          {
+            "AttributeName": "ip3",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "is2",
+            "KeyType": "RANGE"
+          }
+        ],
+      }
+    ]
+  }, 
 ]
 
 for (const table_desc of schema) {

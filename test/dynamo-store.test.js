@@ -46,6 +46,15 @@ function make_seneca(config) {
   )
 }
 
+async function generate_entries(si, q_name, entries) {
+  for(let entry of entries) {
+    await si
+      .entity(q_name)
+      .save$(entry)
+  }
+
+}
+
 lab.test('validate', PluginValidator(Plugin, module))
 
 lab.test('happy', async () => {
@@ -224,25 +233,25 @@ lab.test('comparison-query', async () => {
   var si = make_seneca({
     plugin: {
       entity: {
-        query01: {
+        query02: {
           table: {
-            name: 'query01',
+            name: 'query02',
             key: {
               partition: 'id',
-              sort: 'sk0',
+              sort: 'sk1',
             },
             index: [
               {
-                name: 'gsi_0',
+                name: 'gsi_2',
                 key: {
-                  partition: 'ip0',
+                  partition: 'ip2',
                 },
               },
               {
-                name: 'gsi_1',
+                name: 'gsi_3',
                 key: {
-                  partition: 'ip1',
-                  sort: 'is1',
+                  partition: 'ip3',
+                  sort: 'is2',
                 },
               },
             ],
@@ -255,43 +264,55 @@ lab.test('comparison-query', async () => {
   await si.ready()
   si.quiet()
 
-  await si
-    .entity('query01')
-    .save$({ id$: 'q7', sk0: 'c', ip0: 'C', ip1: 'BB', is1: 3, d: 12 })
-  await si
-    .entity('query01')
-    .save$({ id$: 'q6', sk0: 'c', ip0: 'C', ip1: 'BB', is1: 2, d: 11 })
-  await si
-    .entity('query01')
-    .save$({ id$: 'q8', sk0: 'c', ip0: 'C', ip1: 'BB', is1: 1, d: 13 })
+  let qop = {}
+  let list = await si.entity('query02').list$(qop)
+
+  for (let entry of list) {
+    // console.log('REMOVE', list)
+    await entry.remove$({ id: entry.id, sk1: entry.sk1 })
+  }
+
+  // generate entries for cmpops test
+  await generate_entries(si, 'query02',
+    [ 
+      { id$: 'q3', sk1: 'c', ip2: 'C', ip3: 'AA', is2: 1, d: 10 },
+      { id$: 'q0', sk1: 'a', ip2: 'A', ip3: 'AA', is2: 0, d: 10 },
+      { id$: 'q1', sk1: 'a', ip2: 'B', ip3: 'AA', is2: 0, d: 10 },
+      { id$: 'q2', sk1: 'b', ip2: 'B', ip3: 'AA', is2: 0, d: 10 },
+      { id$: 'q4', sk1: 'c', ip2: 'C', ip3: 'AA', is2: 2, d: 10 },
+      { id$: 'q5', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 0, d: 10 },
+      { id$: 'q7', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 3, d: 12 },
+      { id$: 'q6', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 2, d: 11 },
+      { id$: 'q8', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 },
+    ])
 
   // sort-key comparison
-  let qop = { ip1: 'AA', is1: { $lt: 1 } }
-  let list = await si.entity('query01').list$(qop) 
+  qop = { ip3: 'AA', is2: { $lt: 1 } }
+  list = await si.entity('query02').list$(qop) 
   // console.log('LIST: ', list)
-  expect(list.length).equal(4)
+  expect(list.map((ent) => ent.is2)).equal([0, 0, 0, 1])
   
   qop = { d: { $ne: 10 } }
-  list = await si.entity('query01').list$(qop)
+  list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
   expect(list.length).equal(6)
 
-  qop = { d: { $gt: 10 }, ip1: 'BB', is1: { $gte: 0 } }
-  list = await si.entity('query01').list$(qop)
+  qop = { d: { $gt: 10 }, ip3: 'BB', is2: { $gte: 0 } }
+  list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
   expect(list.length).equal(3)
   
   // descending
-  qop = { d: { $gt: 10 }, ip1: 'BB', is1: { $gt: 0 }, $sort: -1 }
-  list = await si.entity('query01').list$(qop)
+  qop = { d: { $gt: 10 }, ip3: 'BB', is2: { $gt: 0 }, $sort: -1 }
+  list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
-  expect(list.map((ent) => ent.is1)).equal([3, 2, 1, 0])
+  expect(list.map((ent) => ent.is2)).equal([3, 2, 1, 0])
 
   // ascending
-  qop = { d: { $gt: 10 }, ip1: 'BB', is1: { $lt: 3 }, $sort: 1 }
-  list = await si.entity('query01').list$(qop)
+  qop = { d: { $gt: 10 }, ip3: 'BB', is2: { $lt: 3 }, $sort: 1 }
+  list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
-  expect(list.map((ent) => ent.is1)).equal([0, 1, 2, 3])
+  expect(list.map((ent) => ent.is2)).equal([0, 1, 2, 3])
 
 })
 
