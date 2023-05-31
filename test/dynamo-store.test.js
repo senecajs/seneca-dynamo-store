@@ -368,12 +368,28 @@ lab.test('store-with-sortkey', async () => {
   let q80 = await si
     .entity('query02')
     .load$({id: 'q80', sk1: 'c'})
-  expect(q80.data$(false)).to.equal({ sk1: 'c', is2: 2, ip2: 'CC', id: 'q80', d: 14, ip3: 'BBB' })
+  expect(q80.data$(false)).equal({
+    sk1: 'c',
+    is2: 2,
+    ip2: 'CC',
+    id: 'q80',
+    d: 14,
+    ip3: 'BBB'
+  })
   
   // should delete entry with sortkey
   q80 = await si.entity('query02').remove$({id: 'q80', sk1: 'c'})
   
   expect(q80).equal(null)
+
+  // can't update the sortkey but
+  // you can remove that entry
+  // and save the new sortkey with new content
+  // delete-put
+  q80 = await si
+    .entity('query02')
+    .save$({id$: 'q80', sk1: 'cc', d: 15})
+  expect(q80.data$(false)).equal({ sk1: 'cc', d: 15, id: 'q80' })
   
 })
 
