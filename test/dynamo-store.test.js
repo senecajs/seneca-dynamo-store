@@ -316,6 +316,67 @@ lab.test('comparison-query', async () => {
 
 })
 
+lab.test('store-with-sortkey', async () => {
+  var si = make_seneca({
+    plugin: {
+      entity: {
+        query02: {
+          table: {
+            name: 'query02',
+            key: {
+              partition: 'id',
+              sort: 'sk1',
+            },
+            index: [
+              {
+                name: 'gsi_2',
+                key: {
+                  partition: 'ip2',
+                },
+              },
+              {
+                name: 'gsi_3',
+                key: {
+                  partition: 'ip3',
+                  sort: 'is2',
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  })
+
+  await si.ready()
+  si.quiet()
+
+
+  // should put entry with sort
+  await si
+    .entity('query02')
+    .save$({ id$: 'q80', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 })
+    
+  
+  // should update entry with sort
+  // overwrite ip2, ip3, is2, d
+  await si
+    .entity('query02')
+    .save$({ id: 'q80', sk1: 'c', ip2: 'CC', ip3: 'BBB', is2: 2, d: 14 })
+  
+  // should load entry with sort
+  let q80 = await si
+    .entity('query02')
+    .load$({id: 'q80', sk1: 'c'})
+  expect(q80.data$(false)).to.equal({ sk1: 'c', is2: 2, ip2: 'CC', id: 'q80', d: 14, ip3: 'BBB' })
+  
+  // should delete entry with sort
+  q80 = await si.entity('query02').remove$({id: 'q80', sk1: 'c'})
+  
+  expect(q80).equal(null)
+  
+})
+
 lab.test('invalid-operators', async () => {
   var si = make_seneca({
     plugin: {

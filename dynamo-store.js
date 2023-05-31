@@ -272,12 +272,23 @@ function make_intern() {
           else {
             // Build update structure
             // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#update-property
+            
+            let up_req = intern.build_req_key(
+              {
+                TableName: ti.name,
+              },
+              ti,
+              data
+            )
+      
+            // cannot update sortkey
+            let tb_key = ti.key || { partition: 'id' }
+            
             var upreq = {
-              TableName: ti.name,
-              Key: { id: data.id },
+              ...up_req,
               AttributeUpdates: Object.keys(data)
                 //.filter(k=> k!='id' && void 0!==data[k] )
-                .filter((k) => k != 'id')
+                .filter((k) => null == Object.values(tb_key).find(v => v == k) )
                 .reduce(
                   (o, k) => ((o[k] = { Action: 'PUT', Value: data[k] }), o),
                   {}
@@ -290,7 +301,7 @@ function make_intern() {
               if (intern.has_error(seneca, uperr, ctx, reply)) return
 
               // Reload to get data as per db
-              return intern.id_get(ctx, seneca, ent, ti.name, data.id, reply)
+              return intern.id_get(ctx, seneca, ent, ti, data, reply)
             })
           }
 
@@ -558,7 +569,10 @@ function make_intern() {
         table,
         q
       )
-
+      
+      
+      // console.log('GETREQ: ', getreq)
+      
       ctx.dc.get(getreq, function (geterr, getres) {
         if (intern.has_error(seneca, geterr, ctx, reply)) return
 
