@@ -646,7 +646,7 @@ function make_intern() {
             let sk = indexdefkey.sort
             if (null != sk && null != fq[sk]) {
               let fq_op = get_op(fq[sk])
-              let cmpop = fq_op ? fq_op.cmpop : null
+              let cmpop = fq_op?.cmpop
               let cmp = fq_op?.c
               listreq.KeyConditionExpression += null == fq_op ? ` and #${sk}n = :${sk}i` : ` and #${sk}n ${cmpop} :${sk}i`
               listreq.ExpressionAttributeValues[`:${sk}i`] = null == fq_op ? fq[sk] : fq[sk][cmp]
