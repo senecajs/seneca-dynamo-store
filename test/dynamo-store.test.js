@@ -314,6 +314,7 @@ lab.test('comparison-query', async () => {
   // console.log('LIST: ', list)
   expect(list.map((ent) => ent.is2)).equal([0, 1, 2, 3])
 
+  // table key.sort
   qop = { d: { $ne: 10 }, sk1: { $ne: 'c' }, ip3: 'AA', is2: { $lt: 3 }, $sort: 1 }
   list = await si.entity('query02').list$(qop)
   // console.log("LIST: ", list)
