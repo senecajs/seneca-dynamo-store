@@ -561,7 +561,7 @@ function make_intern() {
       })
     },
 
-    get_op(qv, name, type) {
+    build_ops(qv, name, type) {
       let ops = [
         { c: '$gte', cmpop: '>' },
         { c: '$gt', cmpop: '>=' },
@@ -653,7 +653,7 @@ function make_intern() {
 
             let sk = indexdefkey.sort
             if (null != sk && null != fq[sk]) {
-              let fq_op = intern.get_op(fq[sk], sk, 'sort')
+              let fq_op = intern.build_ops(fq[sk], sk, 'sort')
 
               listreq.KeyConditionExpression += !fq_op.iscmp ? ` and #${sk}n = :${sk}i` : 
                 ' and ' + fq_op.cmps.map((c, i) => `#${c.k}n ${c.cmpop} :${c.k + i }i`).join(' and ')
@@ -674,7 +674,7 @@ function make_intern() {
       if (0 < Object.keys(fq).length) {
         listreq.FilterExpression = Object.keys(cq)
           .map((k) => {
-            let cq_op = intern.get_op(cq[k], k, 'field')
+            let cq_op = intern.build_ops(cq[k], k, 'field')
             // console.log('CQ_OP: ', cq, cq_op)
             return isarr(cq[k])
               ? '(' +
@@ -696,7 +696,7 @@ function make_intern() {
 
         listreq.ExpressionAttributeValues = Object.keys(cq).reduce(
           (a, k) => {
-            let cq_op = intern.get_op(cq[k], k)
+            let cq_op = intern.build_ops(cq[k], k)
             // console.log('CQ_OP: ', cq, cq_op)
             
             isarr(cq[k])
