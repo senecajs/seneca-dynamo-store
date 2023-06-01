@@ -76,29 +76,6 @@ function dynamo_store(options) {
 }
 
 
-function get_op(qv) {
-  let op = 
-      null != qv.$gte ? { c: '$gte', cmpop: '>' } :
-      null != qv.$gt ? { c: '$gt', cmpop: '>=' } :
-
-      null != qv.$lt ? { c: '$lt', cmpop: '<=' } :
-      null != qv.$lte ? { c: '$lte', cmpop: '<' } :
-      null != qv.$ne ? { c: '$ne', cmpop: '=' } : null
-  // console.log('QV: ', typeof qv, qv, op)
-  if(op && 1 !== Object.keys(qv).length) {
-    throw new Error('Too many params')
-  }
-  if(!op && 'object' == typeof qv && !Array.isArray(qv)) {
-    Object.keys(qv).every(k => {
-      if(k.startsWith('$')) {
-        throw new Error('Invalid Comparison Operator: ' + k)
-      }
-      return false // break - only check the first param
-    })
-  }
-  return op
-}
-
 function make_intern() {
   return {
     PV: 1, // persistence version, used for data migration
@@ -584,6 +561,37 @@ function make_intern() {
       })
     },
 
+    get_op(qv, name, type) {
+      let ops = [
+        { c: '$gte', cmpop: '>' },
+        { c: '$gt', cmpop: '>=' },
+        { c: '$lt', cmpop: '<=' },
+        { c: '$lte', cmpop: '<' },
+        { c: '$ne', cmpop: '=' }
+      ]
+
+      // console.log('QV: ', typeof qv, qv, op)
+      let cmps = []
+      for(let k in qv) {
+        let op = ops.find(c => c.c == k)
+        if(op) {
+          op.k = name
+          op.v = qv[k]
+          cmps.push(op)
+        }
+        else if(k.startsWith('$')) {
+          throw new Error('Invalid Comparison Operator: ' + k)
+        }
+      }
+      // special case
+      if('sort' == type && 1 < cmps.length) {
+        throw new Error('Only one condition per sortkey: ' + cmps.length + ' is given.')
+      }
+
+      return { iscmp: 0 != cmps.length, cmps, }
+    },
+
+
     listent: function (ctx, seneca, qent, ti, q, reply) {
       var isarr = Array.isArray
       if (isarr(q) || 'object' != typeof q) {
@@ -599,7 +607,6 @@ function make_intern() {
 
       let cq = seneca.util.clean(q)
       let fq = cq
-      
       
       if(null != fq.$sort) {
         let sort_index = {
@@ -646,11 +653,15 @@ function make_intern() {
 
             let sk = indexdefkey.sort
             if (null != sk && null != fq[sk]) {
-              let fq_op = get_op(fq[sk])
-              let cmpop = fq_op?.cmpop
-              let cmp = fq_op?.c
-              listreq.KeyConditionExpression += null == fq_op ? ` and #${sk}n = :${sk}i` : ` and #${sk}n ${cmpop} :${sk}i`
-              listreq.ExpressionAttributeValues[`:${sk}i`] = null == fq_op ? fq[sk] : fq[sk][cmp]
+              let fq_op = intern.get_op(fq[sk], sk, 'sort')
+
+              listreq.KeyConditionExpression += !fq_op.iscmp ? ` and #${sk}n = :${sk}i` : 
+                ' and ' + fq_op.cmps.map((c, i) => `#${c.k}n ${c.cmpop} :${c.k + i }i`).join(' and ')
+
+              !fq_op.iscmp ? (listreq.ExpressionAttributeValues[`:${sk}i`] = fq[sk]) :
+                fq_op.cmps.forEach((c, i)=> {
+                  listreq.ExpressionAttributeValues[`:${c.k + i}i`] = c.v
+                })
               listreq.ExpressionAttributeNames[`#${sk}n`] = sk
               delete fq[sk]
             }
@@ -663,8 +674,7 @@ function make_intern() {
       if (0 < Object.keys(fq).length) {
         listreq.FilterExpression = Object.keys(cq)
           .map((k) => {
-            let cq_op = get_op(cq[k])
-            let cmpop = cq_op?.cmpop
+            let cq_op = intern.get_op(cq[k], k, 'field')
             // console.log('CQ_OP: ', cq, cq_op)
             return isarr(cq[k])
               ? '(' +
@@ -672,7 +682,9 @@ function make_intern() {
                   .map((v, i) => '#' + k + ' = :' + k + i + 'n')
                   .join(' or ') +
                 ')'
-              : null == cq_op ? ('#' + k + ' = :' + k + 'n') : ('#' + k + ` ${cmpop} :` + k + 'n')
+              : !cq_op.iscmp ? ('#' + k + ' = :' + k + 'n') : 
+              '(' + cq_op.cmps.map((c, i) =>
+                 ('#' + k + ` ${c.cmpop} :` + c.k + i + 'n') ).join(' and ') + ')'
               
           })
           .join(' and ')
@@ -684,12 +696,14 @@ function make_intern() {
 
         listreq.ExpressionAttributeValues = Object.keys(cq).reduce(
           (a, k) => {
-            let cq_op = get_op(cq[k])
-            let cmp = cq_op ? cq_op.c : null
+            let cq_op = intern.get_op(cq[k], k)
             // console.log('CQ_OP: ', cq, cq_op)
+            
             isarr(cq[k])
               ? cq[k].map((v, i) => (a[':' + k + i + 'n'] = v))
-              : null == cq_op ? (a[':' + k + 'n'] = cq[k]) : (a[':' + k + 'n'] = cq[k][cmp])
+              : !cq_op.iscmp ? (a[':' + k + 'n'] = cq[k]) : 
+              cq_op.cmps.forEach((c, i) => a[':' + c.k + i + 'n'] = c.v)
+
             return a
           },
           listreq.ExpressionAttributeValues || {}

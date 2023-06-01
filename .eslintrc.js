@@ -5,7 +5,7 @@ module.exports = {
     es6: true
   },
   "parserOptions": {
-    "ecmaVersion": 2020
+    "ecmaVersion": 10
   },
   rules: {
     'no-console': 0,

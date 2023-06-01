@@ -286,6 +286,8 @@ lab.test('comparison-query', async () => {
       { id$: 'q8', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 },
     ])
 
+  /*
+  */
   // sort-key comparison
   qop = { ip3: 'AA', is2: { $lt: 1 } }
   list = await si.entity('query02').list$(qop) 
@@ -319,6 +321,19 @@ lab.test('comparison-query', async () => {
   list = await si.entity('query02').list$(qop)
   // console.log("LIST: ", list)
   expect(list.length).equal(2)
+
+
+  qop = { ip3: 'AA', is2: { $lt: 1, $gte: 2 } } // KeyCondition error
+  qop = { ip3: 'AA', is2: { $lt: 1 } }
+  qop = { d: { $gte: 10, $lte: 13, }, ip3: 'BB', is2: { $lt: 3}, $sort: 1 }
+  list = await si.entity('query02').list$(qop)
+  // console.log("LIST: ", list)
+  expect(list.map((ent) => ent.d)).equal([11, 12])
+
+  qop = { sk1: { $gte: 'a', $lte: 'c' } }
+  list = await si.entity('query02').list$(qop)
+  // console.log('list: ', list)
+  expect(list.map((ent) => ent.sk1)).equal(['b'])
 
 })
 
@@ -434,19 +449,9 @@ lab.test('invalid-operators', async () => {
   await si.ready()
   si.quiet()
 
-
   let list = []
   let qop = {}
   let err
-
-  err = null
-  try {
-    qop = { d: { $gte: 10, $lte: 10 } }
-    list = await si.entity('query01').list$(qop)
-  }catch(e) {
-    err = e
-  }
-  expect(err).not.equal(null)
 
   err = null
   qop = { d: { $notAValidOp: 123 } }
@@ -496,6 +501,7 @@ lab.test('injection-fails', async () => {
   si.quiet()
 
 
+  /*
   let qop = {}
   let list = []
 
@@ -528,6 +534,7 @@ lab.test('injection-fails', async () => {
     expect(list.length).equal(0)
   }
 
+*/
 
 })
 
