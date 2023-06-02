@@ -561,7 +561,13 @@ function make_intern() {
       })
     },
 
-    build_ops(qv, name, type) {
+    build_ops(qv, kname, type) {
+      // iscomb is true when more than one
+      // e.g. { $gte: 1, $lte: 3 }
+      if('object' != typeof qv) { //  && !Array.isArray(qv)) {
+        return { iscomb: false, cmps: [ { c: '$ne', cmpop: '=', k: kname, v: qv } ] }
+      }
+
       let ops = [
         { c: '$gte', cmpop: '>' },
         { c: '$gt', cmpop: '>=' },
@@ -570,12 +576,13 @@ function make_intern() {
         { c: '$ne', cmpop: '=' }
       ]
 
-      // console.log('QV: ', typeof qv, qv, op)
+      // console.log('QV: ', typeof qv, qv)
+
       let cmps = []
       for(let k in qv) {
         let op = ops.find(c => c.c == k)
         if(op) {
-          op.k = name
+          op.k = kname
           op.v = qv[k]
           cmps.push(op)
         }
@@ -588,7 +595,7 @@ function make_intern() {
         throw new Error('Only one condition per sortkey: ' + cmps.length + ' is given.')
       }
 
-      return { iscmp: 0 != cmps.length, cmps, }
+      return { iscomb: 0 != cmps.length, cmps, }
     },
 
 
@@ -655,13 +662,12 @@ function make_intern() {
             if (null != sk && null != fq[sk]) {
               let fq_op = intern.build_ops(fq[sk], sk, 'sort')
 
-              listreq.KeyConditionExpression += !fq_op.iscmp ? ` and #${sk}n = :${sk}i` : 
+              listreq.KeyConditionExpression +=
                 ' and ' + fq_op.cmps.map((c, i) => `#${c.k}n ${c.cmpop} :${c.k + i }i`).join(' and ')
 
-              !fq_op.iscmp ? (listreq.ExpressionAttributeValues[`:${sk}i`] = fq[sk]) :
-                fq_op.cmps.forEach((c, i)=> {
-                  listreq.ExpressionAttributeValues[`:${c.k + i}i`] = c.v
-                })
+              fq_op.cmps.forEach((c, i)=> {
+                listreq.ExpressionAttributeValues[`:${c.k + i}i`] = c.v
+              })
               listreq.ExpressionAttributeNames[`#${sk}n`] = sk
               delete fq[sk]
             }
@@ -682,7 +688,7 @@ function make_intern() {
                   .map((v, i) => '#' + k + ' = :' + k + i + 'n')
                   .join(' or ') +
                 ')'
-              : !cq_op.iscmp ? ('#' + k + ' = :' + k + 'n') : 
+              : !cq_op.iscomb ? ('#' + k + ' = :' + k + 'n') : 
               '(' + cq_op.cmps.map((c, i) =>
                  ('#' + k + ` ${c.cmpop} :` + c.k + i + 'n') ).join(' and ') + ')'
               
@@ -701,7 +707,7 @@ function make_intern() {
             
             isarr(cq[k])
               ? cq[k].map((v, i) => (a[':' + k + i + 'n'] = v))
-              : !cq_op.iscmp ? (a[':' + k + 'n'] = cq[k]) : 
+              : !cq_op.iscomb ? (a[':' + k + 'n'] = cq[k]) : 
               cq_op.cmps.forEach((c, i) => a[':' + c.k + i + 'n'] = c.v)
 
             return a
