@@ -568,22 +568,23 @@ function make_intern() {
         return { iscomb: false, cmps: [ { c: '$ne', cmpop: '=', k: kname, v: qv } ] }
       }
 
-      let ops = [
-        { c: '$gte', cmpop: '>' },
-        { c: '$gt', cmpop: '>=' },
-        { c: '$lt', cmpop: '<=' },
-        { c: '$lte', cmpop: '<' },
-        { c: '$ne', cmpop: '=' }
-      ]
+      let ops = {
+        '$gte': { cmpop: '>' },
+        '$gt': { cmpop: '>=' },
+        '$lt': { cmpop: '<=' },
+        '$lte': { cmpop: '<' },
+        '$ne': { cmpop: '=' }
+      }
 
       // console.log('QV: ', typeof qv, qv)
 
       let cmps = []
       for(let k in qv) {
-        let op = ops.find(c => c.c == k)
+        let op = ops[k]
         if(op) {
           op.k = kname
           op.v = qv[k]
+          op.c = k
           cmps.push(op)
         }
         else if(k.startsWith('$')) {

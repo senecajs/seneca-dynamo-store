@@ -286,8 +286,6 @@ lab.test('comparison-query', async () => {
       { id$: 'q8', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 },
     ])
 
-  /*
-  */
   // sort-key comparison
   qop = { ip3: 'AA', is2: { $lt: 1 } }
   list = await si.entity('query02').list$(qop) 
