@@ -562,10 +562,9 @@ function make_intern() {
     },
 
     build_ops(qv, kname, type) {
-      // iscomb is true when more than one
-      // e.g. { $gte: 1, $lte: 3 }
+
       if('object' != typeof qv) { //  && !Array.isArray(qv)) {
-        return { iscomb: false, cmps: [ { c: '$ne', cmpop: '=', k: kname, v: qv } ] }
+        return { cmps: [ { c: '$ne', cmpop: '=', k: kname, v: qv } ] }
       }
 
       let ops = {
@@ -596,7 +595,7 @@ function make_intern() {
         throw new Error('Only one condition per sortkey: ' + cmps.length + ' is given.')
       }
 
-      return { iscomb: 0 != cmps.length, cmps, }
+      return { cmps, }
     },
 
 
@@ -689,8 +688,7 @@ function make_intern() {
                   .map((v, i) => '#' + k + ' = :' + k + i + 'n')
                   .join(' or ') +
                 ')'
-              : !cq_op.iscomb ? ('#' + k + ' = :' + k + 'n') : 
-              '(' + cq_op.cmps.map((c, i) =>
+              : '(' + cq_op.cmps.map((c, i) =>
                  ('#' + k + ` ${c.cmpop} :` + c.k + i + 'n') ).join(' and ') + ')'
               
           })
@@ -708,8 +706,7 @@ function make_intern() {
             
             isarr(cq[k])
               ? cq[k].map((v, i) => (a[':' + k + i + 'n'] = v))
-              : !cq_op.iscomb ? (a[':' + k + 'n'] = cq[k]) : 
-              cq_op.cmps.forEach((c, i) => a[':' + c.k + i + 'n'] = c.v)
+              : cq_op.cmps.forEach((c, i) => a[':' + c.k + i + 'n'] = c.v)
 
             return a
           },
