@@ -685,7 +685,6 @@ function make_intern() {
                 cq_k
                   .map((v, i) => {
                     let cq_v = intern.build_ops(v, k)
-                    // console.log('cq_v: ', cq_v)
                     return cq_v.cmps.map((c, j) =>
                       ('#' + c.k + ` ${c.cmpop} :` + c.k + i + j + 'n') ).join(' and ')
                    })
