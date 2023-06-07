@@ -689,7 +689,7 @@ function make_intern() {
                   .join(' or ') +
                 ')'
               : '(' + cq_op.cmps.map((c, i) =>
-                 ('#' + k + ` ${c.cmpop} :` + c.k + i + 'n') ).join(' and ') + ')'
+                 ('#' + c.k + ` ${c.cmpop} :` + c.k + i + 'n') ).join(' and ') + ')'
               
           })
           .join(' and ')
@@ -705,7 +705,7 @@ function make_intern() {
             // console.log('CQ_OP: ', cq, cq_op)
             
             isarr(cq[k])
-              ? cq[k].map((v, i) => (a[':' + k + i + 'n'] = v))
+              ? cq[k].forEach((v, i) => (a[':' + k + i + 'n'] = v))
               : cq_op.cmps.forEach((c, i) => a[':' + c.k + i + 'n'] = c.v)
 
             return a
