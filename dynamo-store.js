@@ -680,17 +680,17 @@ function make_intern() {
       if (0 < Object.keys(fq).length) {
         listreq.FilterExpression = Object.keys(cq)
           .map((k) => {
-            let cq_op = intern.build_ops(cq[k], k, 'field')
-            // console.log('CQ_OP: ', cq, cq_op)
-            return isarr(cq[k])
-              ? '(' +
-                cq[k]
-                  .map((v, i) => '#' + k + ' = :' + k + i + 'n')
+            let cq_k =  isarr(cq[k]) ? cq[k] : [ cq[k] ]
+            return '(' +
+                cq_k
+                  .map((v, i) => {
+                    let cq_v = intern.build_ops(v, k)
+                    // console.log('cq_v: ', cq_v)
+                    return cq_v.cmps.map((c, j) =>
+                      ('#' + c.k + ` ${c.cmpop} :` + c.k + i + j + 'n') ).join(' and ')
+                   })
                   .join(' or ') +
                 ')'
-              : '(' + cq_op.cmps.map((c, i) =>
-                 ('#' + c.k + ` ${c.cmpop} :` + c.k + i + 'n') ).join(' and ') + ')'
-              
           })
           .join(' and ')
 
@@ -701,12 +701,12 @@ function make_intern() {
 
         listreq.ExpressionAttributeValues = Object.keys(cq).reduce(
           (a, k) => {
-            let cq_op = intern.build_ops(cq[k], k)
-            // console.log('CQ_OP: ', cq, cq_op)
+            let cq_k = isarr(cq[k]) ? cq[k] : [ cq[k] ]
             
-            isarr(cq[k])
-              ? cq[k].forEach((v, i) => (a[':' + k + i + 'n'] = v))
-              : cq_op.cmps.forEach((c, i) => a[':' + c.k + i + 'n'] = c.v)
+            cq_k.forEach((v, i) => {
+              let cq_v = intern.build_ops(v, k)
+              cq_v.cmps.forEach((c, j)=> a[':' + c.k + i + j + 'n'] = c.v )
+            })
 
             return a
           },
