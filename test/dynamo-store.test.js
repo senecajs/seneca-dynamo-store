@@ -333,7 +333,7 @@ lab.test('comparison-query', async () => {
   // console.log('LIST: ', list)
   expect(list.map((ent) => ent.sk1)).equal(['b'])
   
-  list = await si.entity('query02').list$({ d: [ { $ne: 10 }, { $ne: 11 } ] } )
+  list = await si.entity('query02').list$({ d: [ { $lte: 11, $gte: 9 }, { $ne: 11 } ] } )
   // console.log("LIST: ", list)
   expect(list.length).equal(7)
 
