@@ -685,11 +685,16 @@ function make_intern() {
             return isarr(cq[k])
               ? '(' +
                 cq[k]
-                  .map((v, i) => '#' + k + ' = :' + k + i + 'n')
+                  .map((v, i) => {
+                    let cq_v = intern.build_ops(v, k)
+                    // console.log('cq_v: ', cq_v)
+                    return cq_v.cmps.map((c, j) =>
+                      ('#' + c.k + ` ${c.cmpop} :` + c.k + i + j + 'n') ).join(' and ')
+                   })
                   .join(' or ') +
                 ')'
               : '(' + cq_op.cmps.map((c, i) =>
-                 ('#' + k + ` ${c.cmpop} :` + c.k + i + 'n') ).join(' and ') + ')'
+                 ('#' + c.k + ` ${c.cmpop} :` + c.k + i + 'n') ).join(' and ') + ')'
               
           })
           .join(' and ')
@@ -705,7 +710,10 @@ function make_intern() {
             // console.log('CQ_OP: ', cq, cq_op)
             
             isarr(cq[k])
-              ? cq[k].map((v, i) => (a[':' + k + i + 'n'] = v))
+              ? cq[k].forEach((v, i) => {
+                  let cq_v = intern.build_ops(v, k)
+                  cq_v.cmps.forEach((c, j)=> a[':' + c.k + i + j + 'n'] = c.v )
+                })
               : cq_op.cmps.forEach((c, i) => a[':' + c.k + i + 'n'] = c.v)
 
             return a
@@ -723,7 +731,7 @@ function make_intern() {
         )
       }
 
-      // console.log('LISTREQ', q, listop, listreq)
+      console.log('LISTREQ', q, listop, listreq)
 
       let out_list = []
       function page(paramExclusiveStartKey) {
