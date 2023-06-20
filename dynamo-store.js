@@ -75,7 +75,6 @@ function dynamo_store(options) {
   return plugin_meta
 }
 
-
 function make_intern() {
   return {
     PV: 1, // persistence version, used for data migration
@@ -110,7 +109,7 @@ function make_intern() {
     // TODO: seneca-entity should provide this
     entity_options: function (ent, ctx) {
       let canonkey = ent.canon$()
-      
+
       // NOTE: canonkey in options can omit empty canon parts, and zone
       // so that canonkey can match seneca.entity abbreviated canon
       let entopts =
@@ -250,7 +249,7 @@ function make_intern() {
           else {
             // Build update structure
             // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#update-property
-            
+
             let up_req = intern.build_req_key(
               {
                 TableName: ti.name,
@@ -258,15 +257,17 @@ function make_intern() {
               ti,
               data
             )
-      
+
             // cannot update sortkey
             let tb_key = ti.key || { partition: 'id' }
-            
+
             var upreq = {
               ...up_req,
               AttributeUpdates: Object.keys(data)
                 //.filter(k=> k!='id' && void 0!==data[k] )
-                .filter((k) => null == Object.values(tb_key).find(v => v == k) )
+                .filter(
+                  (k) => null == Object.values(tb_key).find((v) => v == k)
+                )
                 .reduce(
                   (o, k) => ((o[k] = { Action: 'PUT', Value: data[k] }), o),
                   {}
@@ -547,10 +548,9 @@ function make_intern() {
         table,
         q
       )
-      
-      
+
       // console.log('GETREQ: ', getreq)
-      
+
       ctx.dc.get(getreq, function (geterr, getres) {
         if (intern.has_error(seneca, geterr, ctx, reply)) return
 
@@ -562,42 +562,42 @@ function make_intern() {
     },
 
     build_ops(qv, kname, type) {
-
-      if('object' != typeof qv) { //  && !Array.isArray(qv)) {
-        return { cmps: [ { c: '$ne', cmpop: '=', k: kname, v: qv } ] }
+      if ('object' != typeof qv) {
+        //  && !Array.isArray(qv)) {
+        return { cmps: [{ c: '$ne', cmpop: '=', k: kname, v: qv }] }
       }
 
       let ops = {
-        '$gte': { cmpop: '>' },
-        '$gt': { cmpop: '>=' },
-        '$lt': { cmpop: '<=' },
-        '$lte': { cmpop: '<' },
-        '$ne': { cmpop: '=' }
+        $gte: { cmpop: '>' },
+        $gt: { cmpop: '>=' },
+        $lt: { cmpop: '<=' },
+        $lte: { cmpop: '<' },
+        $ne: { cmpop: '=' },
       }
 
       // console.log('QV: ', typeof qv, qv)
 
       let cmps = []
-      for(let k in qv) {
+      for (let k in qv) {
         let op = ops[k]
-        if(op) {
+        if (op) {
           op.k = kname
           op.v = qv[k]
           op.c = k
           cmps.push(op)
-        }
-        else if(k.startsWith('$')) {
+        } else if (k.startsWith('$')) {
           throw new Error('Invalid Comparison Operator: ' + k)
         }
       }
       // special case
-      if('sort' == type && 1 < cmps.length) {
-        throw new Error('Only one condition per sortkey: ' + cmps.length + ' is given.')
+      if ('sort' == type && 1 < cmps.length) {
+        throw new Error(
+          'Only one condition per sortkey: ' + cmps.length + ' is given.'
+        )
       }
 
-      return { cmps, }
+      return { cmps }
     },
-
 
     listent: function (ctx, seneca, qent, ti, q, reply) {
       var isarr = Array.isArray
@@ -614,17 +614,16 @@ function make_intern() {
 
       let cq = seneca.util.clean(q)
       let fq = cq
-      
-      if(null != fq.$sort) {
+
+      if (null != fq.$sort) {
         let sort_index = {
-          '1': true, // ascending
-          '-1': false // descending
+          1: true, // ascending
+          '-1': false, // descending
         }
         let sort_mode = sort_index[fq.$sort]
-        
+
         null != sort_mode && (listreq.ScanIndexForward = sort_mode)
         delete fq.$sort
-          
       }
 
       // hash and range key must be used together
@@ -663,9 +662,12 @@ function make_intern() {
               let fq_op = intern.build_ops(fq[sk], sk, 'sort')
 
               listreq.KeyConditionExpression +=
-                ' and ' + fq_op.cmps.map((c, i) => `#${c.k}n ${c.cmpop} :${c.k + i }i`).join(' and ')
+                ' and ' +
+                fq_op.cmps
+                  .map((c, i) => `#${c.k}n ${c.cmpop} :${c.k + i}i`)
+                  .join(' and ')
 
-              fq_op.cmps.forEach((c, i)=> {
+              fq_op.cmps.forEach((c, i) => {
                 listreq.ExpressionAttributeValues[`:${c.k + i}i`] = c.v
               })
               listreq.ExpressionAttributeNames[`#${sk}n`] = sk
@@ -680,17 +682,22 @@ function make_intern() {
       if (0 < Object.keys(fq).length) {
         listreq.FilterExpression = Object.keys(cq)
           .map((k) => {
-            let cq_k =  isarr(cq[k]) ? cq[k] : [ cq[k] ]
-            return '(' +
-                cq_k
-                  .map((v, i) => {
-                    let cq_v = intern.build_ops(v, k)
-                    // console.log('cq_v: ', cq_v)
-                    return cq_v.cmps.map((c, j) =>
-                      ('#' + c.k + ` ${c.cmpop} :` + c.k + i + j + 'n') ).join(' and ')
-                   })
-                  .join(' or ') +
-                ')'
+            let cq_k = isarr(cq[k]) ? cq[k] : [cq[k]]
+            return (
+              '(' +
+              cq_k
+                .map((v, i) => {
+                  let cq_v = intern.build_ops(v, k)
+                  // console.log('cq_v: ', cq_v)
+                  return cq_v.cmps
+                    .map(
+                      (c, j) => '#' + c.k + ` ${c.cmpop} :` + c.k + i + j + 'n'
+                    )
+                    .join(' and ')
+                })
+                .join(' or ') +
+              ')'
+            )
           })
           .join(' and ')
 
@@ -699,19 +706,16 @@ function make_intern() {
           listreq.ExpressionAttributeNames || {}
         )
 
-        listreq.ExpressionAttributeValues = Object.keys(cq).reduce(
-          (a, k) => {
-            let cq_k = isarr(cq[k]) ? cq[k] : [ cq[k] ]
-            
-            cq_k.forEach((v, i) => {
-              let cq_v = intern.build_ops(v, k)
-              cq_v.cmps.forEach((c, j)=> a[':' + c.k + i + j + 'n'] = c.v )
-            })
+        listreq.ExpressionAttributeValues = Object.keys(cq).reduce((a, k) => {
+          let cq_k = isarr(cq[k]) ? cq[k] : [cq[k]]
 
-            return a
-          },
-          listreq.ExpressionAttributeValues || {}
-        )
+          cq_k.forEach((v, i) => {
+            let cq_v = intern.build_ops(v, k)
+            cq_v.cmps.forEach((c, j) => (a[':' + c.k + i + j + 'n'] = c.v))
+          })
+
+          return a
+        }, listreq.ExpressionAttributeValues || {})
       }
 
       if (q.fields$) {

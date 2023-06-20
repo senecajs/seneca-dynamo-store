@@ -47,12 +47,9 @@ function make_seneca(config) {
 }
 
 async function generate_entries(si, q_name, entries) {
-  for(let entry of entries) {
-    await si
-      .entity(q_name)
-      .save$(entry)
+  for (let entry of entries) {
+    await si.entity(q_name).save$(entry)
   }
-
 }
 
 lab.test('validate', PluginValidator(Plugin, module))
@@ -273,25 +270,24 @@ lab.test('comparison-query', async () => {
   }
 
   // generate entries for cmpops test
-  await generate_entries(si, 'query02',
-    [ 
-      { id$: 'q3', sk1: 'c', ip2: 'C', ip3: 'AA', is2: 1, d: 10 },
-      { id$: 'q0', sk1: 'a', ip2: 'A', ip3: 'AA', is2: 0, d: 10 },
-      { id$: 'q1', sk1: 'a', ip2: 'B', ip3: 'AA', is2: 0, d: 10 },
-      { id$: 'q2', sk1: 'b', ip2: 'B', ip3: 'AA', is2: 0, d: 10 },
-      { id$: 'q4', sk1: 'c', ip2: 'C', ip3: 'AA', is2: 2, d: 10 },
-      { id$: 'q5', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 0, d: 10 },
-      { id$: 'q7', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 3, d: 12 },
-      { id$: 'q6', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 2, d: 11 },
-      { id$: 'q8', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 },
-    ])
+  await generate_entries(si, 'query02', [
+    { id$: 'q3', sk1: 'c', ip2: 'C', ip3: 'AA', is2: 1, d: 10 },
+    { id$: 'q0', sk1: 'a', ip2: 'A', ip3: 'AA', is2: 0, d: 10 },
+    { id$: 'q1', sk1: 'a', ip2: 'B', ip3: 'AA', is2: 0, d: 10 },
+    { id$: 'q2', sk1: 'b', ip2: 'B', ip3: 'AA', is2: 0, d: 10 },
+    { id$: 'q4', sk1: 'c', ip2: 'C', ip3: 'AA', is2: 2, d: 10 },
+    { id$: 'q5', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 0, d: 10 },
+    { id$: 'q7', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 3, d: 12 },
+    { id$: 'q6', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 2, d: 11 },
+    { id$: 'q8', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 },
+  ])
 
   // sort-key comparison
   qop = { ip3: 'AA', is2: { $lt: 1 } }
-  list = await si.entity('query02').list$(qop) 
+  list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
   expect(list.map((ent) => ent.is2)).equal([0, 0, 0, 1])
-  
+
   qop = { d: { $ne: 10 } }
   list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
@@ -301,7 +297,7 @@ lab.test('comparison-query', async () => {
   list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
   expect(list.length).equal(3)
-  
+
   // descending
   qop = { d: { $gt: 10 }, ip3: 'BB', is2: { $gt: 0 }, $sort: -1 }
   list = await si.entity('query02').list$(qop)
@@ -315,15 +311,20 @@ lab.test('comparison-query', async () => {
   expect(list.map((ent) => ent.is2)).equal([0, 1, 2, 3])
 
   // table key.sort
-  qop = { d: { $ne: 10 }, sk1: { $ne: 'c' }, ip3: 'AA', is2: { $lt: 3 }, $sort: 1 }
+  qop = {
+    d: { $ne: 10 },
+    sk1: { $ne: 'c' },
+    ip3: 'AA',
+    is2: { $lt: 3 },
+    $sort: 1,
+  }
   list = await si.entity('query02').list$(qop)
   // console.log("LIST: ", list)
   expect(list.length).equal(2)
 
-
   qop = { ip3: 'AA', is2: { $lt: 1, $gte: 2 } } // KeyCondition error
   qop = { ip3: 'AA', is2: { $lt: 1 } }
-  qop = { d: { $gte: 10, $lte: 13, }, ip3: 'BB', is2: { $lt: 3}, $sort: 1 }
+  qop = { d: { $gte: 10, $lte: 13 }, ip3: 'BB', is2: { $lt: 3 }, $sort: 1 }
   list = await si.entity('query02').list$(qop)
   // console.log("LIST: ", list)
   expect(list.map((ent) => ent.d)).equal([11, 12])
@@ -332,11 +333,12 @@ lab.test('comparison-query', async () => {
   list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
   expect(list.map((ent) => ent.sk1)).equal(['b'])
-  
-  list = await si.entity('query02').list$({ d: [ { $lte: 11, $gte: 9 }, { $ne: 11 } ] } )
+
+  list = await si
+    .entity('query02')
+    .list$({ d: [{ $lte: 11, $gte: 9 }, { $ne: 11 }] })
   // console.log("LIST: ", list)
   expect(list.length).equal(7)
-
 })
 
 lab.test('store-with-sortkey', async () => {
@@ -374,46 +376,39 @@ lab.test('store-with-sortkey', async () => {
   await si.ready()
   si.quiet()
 
-
   // should put entry with sortkey
   await si
     .entity('query02')
     .save$({ id$: 'q80', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 })
-    
-  
+
   // should update entry with sortkey
   // overwrite ip2, ip3, is2, d
   await si
     .entity('query02')
     .save$({ id: 'q80', sk1: 'c', ip2: 'CC', ip3: 'BBB', is2: 2, d: 14 })
-  
+
   // should load entry with sortkey
-  let q80 = await si
-    .entity('query02')
-    .load$({id: 'q80', sk1: 'c'})
+  let q80 = await si.entity('query02').load$({ id: 'q80', sk1: 'c' })
   expect(q80.data$(false)).equal({
     sk1: 'c',
     is2: 2,
     ip2: 'CC',
     id: 'q80',
     d: 14,
-    ip3: 'BBB'
+    ip3: 'BBB',
   })
-  
+
   // should delete entry with sortkey
-  q80 = await si.entity('query02').remove$({id: 'q80', sk1: 'c'})
-  
+  q80 = await si.entity('query02').remove$({ id: 'q80', sk1: 'c' })
+
   expect(q80).equal(null)
 
   // can't update the sortkey but
   // you can remove that entry
   // and save the new sortkey with new content
   // delete-put
-  q80 = await si
-    .entity('query02')
-    .save$({id$: 'q80', sk1: 'cc', d: 15})
+  q80 = await si.entity('query02').save$({ id$: 'q80', sk1: 'cc', d: 15 })
   expect(q80.data$(false)).equal({ sk1: 'cc', d: 15, id: 'q80' })
-  
 })
 
 lab.test('invalid-operators', async () => {
@@ -459,15 +454,13 @@ lab.test('invalid-operators', async () => {
   qop = { d: { $notAValidOp: 123 } }
   try {
     list = await si.entity('query01').list$(qop)
-  }catch(e) {
+  } catch (e) {
     err = e
   }
   expect(err).not.equal(null)
-
 })
 
 lab.test('injection-fails', async () => {
-
   var si = make_seneca({
     plugin: {
       entity: {
@@ -501,7 +494,6 @@ lab.test('injection-fails', async () => {
 
   await si.ready()
   si.quiet()
-
 
   /*
   let qop = {}
@@ -537,7 +529,6 @@ lab.test('injection-fails', async () => {
   }
 
 */
-
 })
 
 lab.test('export', async () => {
