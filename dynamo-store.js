@@ -51,7 +51,8 @@ function dynamo_store(options) {
   )
 
   var store = intern.make_store(ctx)
-  var meta = seneca.store.init(seneca, options, store)
+  let init = seneca.export('entity/init')
+  var meta = init(seneca, options, store)
 
   seneca.add({ init: store.name, tag: meta.tag }, function (msg, reply) {
     const AWS_SDK = options.sdk()
