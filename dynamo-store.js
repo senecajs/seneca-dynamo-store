@@ -1,7 +1,8 @@
-/* Copyright (c) 2020-2022 Richard Rodger and other contributors, MIT License. */
+/* Copyright (c) 2020-2023 Richard Rodger and other contributors, MIT License. */
 'use strict'
 
-const { Required, Open } = require('gubu')
+const Seneca = require('seneca')
+const { Required, Open } = Seneca.valid
 
 module.exports = dynamo_store
 
