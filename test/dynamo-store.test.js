@@ -40,8 +40,8 @@ function make_seneca(config) {
               secretAccessKey: 'none',
             },
           },
-          config.plugin
-        )
+          config.plugin,
+        ),
       )
   )
 }

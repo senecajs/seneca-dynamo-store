@@ -40,14 +40,14 @@ function dynamo_store(options) {
       // TODO: use seneca.export once it allows for null values
       generate_id: seneca.export('entity/generate_id'),
     },
-    options
+    options,
   )
 
   const ctx = intern.make_ctx(
     {
       name: 'dynamo-store',
     },
-    options
+    options,
   )
 
   var store = intern.make_store(ctx)
@@ -58,7 +58,7 @@ function dynamo_store(options) {
     const AWS_SDK = options.sdk()
     AWS_SDK.config.update(intern.clean_config(options.aws))
     ctx.dc = new AWS_SDK.DynamoDB.DocumentClient(
-      intern.clean_config(options.dc)
+      intern.clean_config(options.dc),
     )
 
     reply()
@@ -104,7 +104,7 @@ function make_intern() {
           options,
           intern,
         },
-        initial_ctx
+        initial_ctx,
       )
     },
 
@@ -257,7 +257,7 @@ function make_intern() {
                 TableName: ti.name,
               },
               ti,
-              data
+              data,
             )
 
             // cannot update sortkey
@@ -268,11 +268,11 @@ function make_intern() {
               AttributeUpdates: Object.keys(data)
                 //.filter(k=> k!='id' && void 0!==data[k] )
                 .filter(
-                  (k) => null == Object.values(tb_key).find((v) => v == k)
+                  (k) => null == Object.values(tb_key).find((v) => v == k),
                 )
                 .reduce(
                   (o, k) => ((o[k] = { Action: 'PUT', Value: data[k] }), o),
-                  {}
+                  {},
                 ),
             }
 
@@ -402,7 +402,7 @@ function make_intern() {
                 if (err) return reply(err)
 
                 return reply(reslist ? reslist[0] : null)
-              }
+              },
             )
           }
 
@@ -423,7 +423,7 @@ function make_intern() {
 
         remove: function (msg, reply) {
           var seneca = this
-          // console.log('REMOVE MSG', msg)
+          console.log('SENECA DYNAMO REMOVE MSG', msg)
 
           var qent = msg.qent
           var q = msg.q
@@ -434,9 +434,14 @@ function make_intern() {
 
           var qid = q.id
 
+          console.log('SENECA DYNAMO REMOVE QUERY', q, qid, all, load)
+
           if (null != qid) {
+            console.log('SENECA DYNAMO REMOVE SINGLE')
             return remove_single_by_id(q)
           } else {
+            console.log('SENECA DYNAMO REMOVE BATCH')
+
             let cq = seneca.util.clean(q)
             // console.log('CQ', cq)
 
@@ -481,7 +486,7 @@ function make_intern() {
             if (null != q.id) {
               if (load) {
                 intern.id_get(ctx, seneca, qent, ti, q, (err, old) =>
-                  dc_delete(q, err, old)
+                  dc_delete(q, err, old),
                 )
               } else {
                 dc_delete(q)
@@ -499,10 +504,14 @@ function make_intern() {
                 TableName: ti.name,
               },
               ti,
-              q
+              q,
             )
 
+            console.log('SENECA DYNAMO REMOVE REQ', delreq)
+
             ctx.dc.delete(delreq, function (delerr, delres) {
+              console.log('SENECA DYNAMO REMOVE RES', delerr, delres)
+
               if (intern.has_error(seneca, delerr, ctx, reply)) return
 
               reply(old)
@@ -548,7 +557,7 @@ function make_intern() {
           TableName: ti.name,
         },
         table,
-        q
+        q,
       )
 
       // console.log('GETREQ: ', getreq)
@@ -594,7 +603,7 @@ function make_intern() {
       // special case
       if ('sort' == type && 1 < cmps.length) {
         throw new Error(
-          'Only one condition per sortkey: ' + cmps.length + ' is given.'
+          'Only one condition per sortkey: ' + cmps.length + ' is given.',
         )
       }
 
@@ -693,7 +702,7 @@ function make_intern() {
                   // console.log('cq_v: ', cq_v)
                   return cq_v.cmps
                     .map(
-                      (c, j) => '#' + c.k + ` ${c.cmpop} :` + c.k + i + j + 'n'
+                      (c, j) => '#' + c.k + ` ${c.cmpop} :` + c.k + i + j + 'n',
                     )
                     .join(' and ')
                 })
@@ -705,7 +714,7 @@ function make_intern() {
 
         listreq.ExpressionAttributeNames = Object.keys(cq).reduce(
           (a, k) => ((a['#' + k] = k), a),
-          listreq.ExpressionAttributeNames || {}
+          listreq.ExpressionAttributeNames || {},
         )
 
         listreq.ExpressionAttributeValues = Object.keys(cq).reduce((a, k) => {
@@ -725,7 +734,7 @@ function make_intern() {
         q.fields$.reduce(
           (a, k) => ((a['#' + k] = k), a),
           (listreq.ExpressionAttributeNames =
-            listreq.ExpressionAttributeNames || {})
+            listreq.ExpressionAttributeNames || {}),
         )
       }
 
