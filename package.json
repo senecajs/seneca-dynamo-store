@@ -21,7 +21,7 @@
     "test-create-db": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 node ./test/support/db/create-test-tables.js",
     "test-delete-db": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 node ./test/support/db/delete-test-tables.js",
     "test-list-tables": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 node ./test/support/db/list-test-tables.js",
-    "test": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 lab -v -L  -t 50 -P '\\.test' test -r console -o stdout -r html -o test/coverage.html -I AggregateError,atob,btoa,AbortController,AbortSignal,EventTarget,Event,MessageChannel,MessagePort,MessageEvent,performance",
+    "test": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 lab -l -v -L  -t 50 -P '\\.test' test -r console -o stdout -r html -o test/coverage.html -I AggregateError,atob,btoa,AbortController,AbortSignal,EventTarget,Event,MessageChannel,MessagePort,MessageEvent,performance",
     "test-some": "SENECA_DYNAMO_ENDPOINT=http://localhost:18000 lab -v -L -P '\\.test' test -r console -g ",
     "test-msgs": "lab -t 50 -P messages.test -r console -o stdout -r html -o test/coverage.html",
     "doc": "seneca-doc",

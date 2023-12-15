@@ -190,7 +190,7 @@ function make_intern() {
           var merge =
             null == q.merge$ ? false !== opts.merge : false !== q.merge$
           
-          const { PutItemCommand, UpdateItemCommand } = opts.sdk()
+          const { PutItemCommand, UpdateItemCommand, ScanCommand } = opts.sdk()
 
           data = intern.inbound(ctx, ent, data)
   
@@ -337,7 +337,7 @@ function make_intern() {
 
 
             // TODO: redesign - will not work
-/*
+            /*
             const scanned = await ctx.client
               .scan({
                 TableName: table,
@@ -418,10 +418,10 @@ function make_intern() {
               if (scanned.Count === 0) {
                 await ctx.client.send(new PutItemCommand({
                   TableName: table,
-                  Item: opts.marshall({ ...doc, id: newId }),
+                  Item: opts.marshall({ ...doc, id: new_id }),
                 }))
 
-                return { id: newId }
+                return { id: new_id }
               }
 
               const [ item ] = scanned.Items
