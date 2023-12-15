@@ -1,7 +1,9 @@
 /* Copyright (c) 2019-2022 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-const AWS_SDK = require('aws-sdk')
+const AWS_SDK = require('@aws-sdk/client-dynamodb')
+
+const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 
 const Code = require('@hapi/code')
 const expect = Code.expect
@@ -32,12 +34,15 @@ function make_seneca(config) {
         Object.assign(
           {
             sdk: () => AWS_SDK,
+            marshall,
+            unmarshall,
             aws: {
               region: 'region',
-              endpoint:
-                process.env.SENECA_DYNAMO_ENDPOINT || 'http://localhost:18000',
-              accessKeyId: 'none',
-              secretAccessKey: 'none',
+              endpoint: process.env.SENECA_DYNAMO_ENDPOINT || 'http://localhost:18000',
+              credentials: {
+                accessKeyId: 'none',
+                secretAccessKey: 'none',
+              }
             },
           },
           config.plugin,
@@ -283,60 +288,68 @@ lab.test('comparison-query', async () => {
   ])
 
   // sort-key comparison
-  qop = { ip3: 'AA', is2: { $lt: 1 } }
+  qop = { ip3: 'AA', is2: { lte$: 1 } }
   list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
   expect(list.map((ent) => ent.is2)).equal([0, 0, 0, 1])
 
-  qop = { d: { $ne: 10 } }
+  qop = { d: { eq$: 10 } }
   list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
   expect(list.length).equal(6)
 
-  qop = { d: { $gt: 10 }, ip3: 'BB', is2: { $gte: 0 } }
+  qop = { d: { gte$: 10 }, ip3: 'BB', is2: { gt$: 0 } }
   list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
   expect(list.length).equal(3)
 
   // descending
-  qop = { d: { $gt: 10 }, ip3: 'BB', is2: { $gt: 0 }, $sort: -1 }
+  qop = { d: { gte$: 10 }, ip3: 'BB', is2: { gte$: 0 }, sort$: { is2: -1 } }
   list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
   expect(list.map((ent) => ent.is2)).equal([3, 2, 1, 0])
 
   // ascending
-  qop = { d: { $gt: 10 }, ip3: 'BB', is2: { $lt: 3 }, $sort: 1 }
+  qop = { d: { gte$: 10 }, ip3: 'BB', is2: { lte$: 3 }, sort$: { is2: 1 } }
   list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
   expect(list.map((ent) => ent.is2)).equal([0, 1, 2, 3])
 
   // table key.sort
   qop = {
-    d: { $ne: 10 },
-    sk1: { $ne: 'c' },
+    d: { eq$: 10 },
+    sk1: { eq$: 'c' },
     ip3: 'AA',
-    is2: { $lt: 3 },
-    $sort: 1,
+    is2: { lte$: 3 },
+    sort$: { sk1: 1 },
+  }
+  list = await si.entity('query02').list$(qop)
+  expect(list.length).equal(2)
+  
+  // table.key.sort and hashKey
+  qop = {
+    id: 'q0',
+    sort$: { sk1: 1 },
   }
   list = await si.entity('query02').list$(qop)
   // console.log("LIST: ", list)
-  expect(list.length).equal(2)
+  expect(list.length).equal(1)
 
-  qop = { ip3: 'AA', is2: { $lt: 1, $gte: 2 } } // KeyCondition error
-  qop = { ip3: 'AA', is2: { $lt: 1 } }
-  qop = { d: { $gte: 10, $lte: 13 }, ip3: 'BB', is2: { $lt: 3 }, $sort: 1 }
+  qop = { ip3: 'AA', is2: { lte$: 1, gt$: 2 } } // KeyCondition error
+  qop = { ip3: 'AA', is2: { lte$: 1 } }
+  qop = { d: { gt$: 10, lt$: 13 }, ip3: 'BB', is2: { lte$: 3 }, sort$: { is2: 1 } }
   list = await si.entity('query02').list$(qop)
   // console.log("LIST: ", list)
   expect(list.map((ent) => ent.d)).equal([11, 12])
 
-  qop = { sk1: { $gte: 'a', $lte: 'c' } }
+  qop = { sk1: { gt$: 'a', lt$: 'c' } }
   list = await si.entity('query02').list$(qop)
   // console.log('LIST: ', list)
   expect(list.map((ent) => ent.sk1)).equal(['b'])
 
   list = await si
     .entity('query02')
-    .list$({ d: [{ $lte: 11, $gte: 9 }, { $ne: 11 }] })
+    .list$({ d: [{ lt$: 11, gt$: 9 }, { eq$: 11 }] })
   // console.log("LIST: ", list)
   expect(list.length).equal(7)
 })
@@ -397,6 +410,11 @@ lab.test('store-with-sortkey', async () => {
     d: 14,
     ip3: 'BBB',
   })
+  
+  // { ip3: { $lt: 'CC' }, sort$: { is2: -1 }}
+  // Query key condition not supported
+  let list = await si.entity('query02').list$({ ip3: { eq$: 'BB' }, sort$: { is2: 1 }})
+  // console.log('list: ', list)
 
   // should delete entry with sortkey
   q80 = await si.entity('query02').remove$({ id: 'q80', sk1: 'c' })
@@ -451,7 +469,7 @@ lab.test('invalid-operators', async () => {
   let err
 
   err = null
-  qop = { d: { $notAValidOp: 123 } }
+  qop = { d: { notAValidOp$: 123 } }
   try {
     list = await si.entity('query01').list$(qop)
   } catch (e) {
@@ -535,8 +553,8 @@ lab.test('export', async () => {
   var si = make_seneca()
   await si.ready()
 
-  var get_dc = si.export('dynamo-store$1/get_dc')
-  expect(get_dc()).exists()
+  var get_client = si.export('dynamo-store$1/get_client')
+  expect(get_client()).exists()
 })
 
 lab.describe('legacy-store-test', () => {

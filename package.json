@@ -44,10 +44,11 @@
     "https://github.com/lilsweetcaligula"
   ],
   "engines": {
-    "node": ">=10"
+    "node": ">=14"
   },
   "devDependencies": {
-    "aws-sdk": "^2.1474.0",
+    "@aws-sdk/client-dynamodb": "^3.474.0",
+    "@aws-sdk/util-dynamodb": "^3.474.0",
     "coveralls": "3.1.1",
     "prettier": "3.0.3",
     "seneca": "3.30.1",
