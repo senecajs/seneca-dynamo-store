@@ -234,7 +234,7 @@ lab.test('comparison-query', async () => {
             name: 'query02',
             key: {
               partition: 'id',
-              sort: 'sk1',
+              // sort: 'sk1',
             },
             index: [
               {
@@ -265,7 +265,7 @@ lab.test('comparison-query', async () => {
 
   for (let entry of list) {
     // console.log('REMOVE', list)
-    await entry.remove$({ id: entry.id, sk1: entry.sk1 })
+    await entry.remove$({ id: entry.id })
   }
 
   // generate entries for cmpops test
@@ -357,7 +357,7 @@ lab.test('store-with-sortkey', async () => {
             name: 'query02',
             key: {
               partition: 'id',
-              sort: 'sk1',
+              // sort: 'sk1',
             },
             index: [
               {
