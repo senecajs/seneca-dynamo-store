@@ -4,6 +4,12 @@
 const Seneca = require('seneca')
 const { Required, Open } = Seneca.valid
 
+// AWS utility
+const {
+  marshall,
+  unmarshall
+} = require('@aws-sdk/util-dynamodb')
+
 module.exports = dynamo_store
 
 module.exports.errors = {}
@@ -15,9 +21,6 @@ module.exports.defaults = {
 
   // Provide AWS SDK (via function) externally so that it is not dragged into lambdas.
   sdk: Required(Function),
-  
-  marshall: Required(Function),
-  unmarshall: Required(Function),
 
   // preserve undefined fields when saving
   merge: true,
@@ -168,6 +171,14 @@ function make_intern() {
 
     make_store: function (ctx) {
       const opts = ctx.options
+      
+      const {
+        PutItemCommand,
+        UpdateItemCommand,
+        ScanCommand,
+        DeleteItemCommand,
+        BatchWriteItemCommand
+      } = opts.sdk()
 
       const store = {
         name: ctx.name,
@@ -189,8 +200,6 @@ function make_intern() {
           // Explicit `false` value otherwise consider merge `true`.
           var merge =
             null == q.merge$ ? false !== opts.merge : false !== q.merge$
-          
-          const { PutItemCommand, UpdateItemCommand, ScanCommand } = opts.sdk()
 
           data = intern.inbound(ctx, ent, data)
   
@@ -232,7 +241,7 @@ function make_intern() {
             var req = {
               TableName: ti.name,
               ConditionExpression: 'attribute_not_exists(id)',
-              Item: opts.marshall(data),
+              Item: marshall(data),
             }
 
             // console.log('PUT', req)
@@ -260,7 +269,6 @@ function make_intern() {
             // https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#update-property
 
             let up_req = intern.build_req_key(
-              opts,
               {
                 TableName: ti.name,
               },
@@ -279,7 +287,7 @@ function make_intern() {
                   (k) => null == Object.values(tb_key).find((v) => v == k),
                 )
                 .reduce(
-                  (o, k) => ((o[k] = { Action: 'PUT', Value: opts.marshall(data[k]) }), o),
+                  (o, k) => ((o[k] = { Action: 'PUT', Value: marshall(data[k]) }), o),
                   {},
                 ),
             }
@@ -298,7 +306,7 @@ function make_intern() {
               .then( upres => {
 
                 // Reload to get data as per db
-                return intern.id_get(ctx, seneca, ent, ti, data, reply);
+                return intern.id_get(ctx, seneca, ent, ti, data, reply)
               },
               (uperr) => intern.has_error(seneca, uperr, ctx, reply) )
           }
@@ -418,7 +426,7 @@ function make_intern() {
               if (scanned.Count === 0) {
                 await ctx.client.send(new PutItemCommand({
                   TableName: table,
-                  Item: opts.marshall({ ...doc, id: new_id }),
+                  Item: marshall({ ...doc, id: new_id }),
                 }))
 
                 return { id: new_id }
@@ -435,7 +443,7 @@ function make_intern() {
                   .reduce((acc, k) => {
                     acc[k] = {
                       Action: 'PUT',
-                      Value: opts.marshall(doc[k]),
+                      Value: marshall(doc[k]),
                     }
                     return acc
                   }, {}),
@@ -496,8 +504,6 @@ function make_intern() {
         remove: function (msg, reply) {
           var seneca = this
           console.log('SENECA DYNAMO REMOVE MSG', msg)
-          
-          const { DeleteItemCommand, BatchWriteItemCommand } = opts.sdk()
 
           var qent = msg.qent
           var q = msg.q
@@ -584,7 +590,6 @@ function make_intern() {
             if (intern.has_error(seneca, err, ctx, reply)) return
 
             var delreq = intern.build_req_key(
-              opts,
               {
                 TableName: ti.name,
               },
@@ -623,7 +628,7 @@ function make_intern() {
       return tableInfo
     },
 
-    build_req_key(opts, req, table, q) {
+    build_req_key(req, table, q) {
   
       req.Key = { id: 'string' === typeof q ? q : q.id }
 
@@ -631,7 +636,7 @@ function make_intern() {
       if (sortkey) {
         req.Key[sortkey] = q[sortkey]
       }
-      req.Key = opts.marshall(req.Key)
+      req.Key = marshall(req.Key)
 
       return req
     },
@@ -642,7 +647,6 @@ function make_intern() {
       let ti = intern.tableinfo(table)
 
       const getreq = intern.build_req_key(
-        ctx.options,
         {
           TableName: ti.name,
         },
@@ -707,6 +711,8 @@ function make_intern() {
     listent: function (ctx, seneca, qent, ti, q, reply) {
       var isarr = Array.isArray
       let opts = ctx.options
+      const { ScanCommand, QueryCommand } = ctx.options.sdk()
+      
       if (isarr(q) || 'object' != typeof q) {
         q = { id: q }
       }
@@ -738,8 +744,8 @@ function make_intern() {
         listop = 'query'
         listreq.KeyConditionExpression = `id = :hashKey and #${sortkey}n = :rangeKey`
         listreq.ExpressionAttributeValues = {
-          ':hashKey': opts.marshall(cq.id),
-          ':rangeKey': opts.marshall(cq[sortkey]),
+          ':hashKey': marshall(cq.id),
+          ':rangeKey': marshall(cq[sortkey]),
         }
         listreq.ExpressionAttributeNames = {}
         listreq.ExpressionAttributeNames[`#${sortkey}n`] = sortkey
@@ -767,7 +773,7 @@ function make_intern() {
                   
             listreq.ExpressionAttributeValues = {}
             fq_pk.cmps.forEach((c, i) => {
-              listreq.ExpressionAttributeValues[`:${c.k + i}ii`] = opts.marshall(c.v)
+              listreq.ExpressionAttributeValues[`:${c.k + i}ii`] = marshall(c.v)
             })
             
             listreq.ExpressionAttributeNames = {}
@@ -786,7 +792,7 @@ function make_intern() {
                   .join(' and ')
 
               fq_op.cmps.forEach((c, i) => {
-                listreq.ExpressionAttributeValues[`:${c.k + i}i`] = opts.marshall(c.v)
+                listreq.ExpressionAttributeValues[`:${c.k + i}i`] = marshall(c.v)
               })
               listreq.ExpressionAttributeNames[`#${sk}n`] = sk
               delete fq[sk]
@@ -830,7 +836,7 @@ function make_intern() {
 
           cq_k.forEach((v, i) => {
             let cq_v = intern.build_ops(v, k)
-            cq_v.cmps.forEach((c, j) => (a[':' + c.k + i + j + 'n'] = opts.marshall(c.v) ))
+            cq_v.cmps.forEach((c, j) => (a[':' + c.k + i + j + 'n'] = marshall(c.v) ))
           })
 
           return a
@@ -853,28 +859,21 @@ function make_intern() {
         if (null != paramExclusiveStartKey) {
           listreq.ExclusiveStartKey = paramExclusiveStartKey
         }
-        const { ScanCommand, QueryCommand } = ctx.options.sdk()
         
         try {
-          let Command
-          if(listop == 'scan'){
-            Command = ScanCommand
-          }
-          else if(listop == 'query') {
-            Command = QueryCommand
-          }
+          let Command = listop == 'scan' ? ScanCommand : QueryCommand
     
           const listRes = await ctx.client.send(new Command(listreq))
 
           if (listRes.Items && listRes.Items.length > 0) {
-            listRes.Items.forEach((item) => out_list.push(qent.make$(intern.outbound(ctx, qent, item))));
+            listRes.Items.forEach((item) => out_list.push(qent.make$(intern.outbound(ctx, qent, item))))
           }
           // console.log('out_list: ', out_list)
 
           if (listRes.LastEvaluatedKey) {
-            setImmediate(() => page(listRes.LastEvaluatedKey));
+            setImmediate(() => page(listRes.LastEvaluatedKey))
           } else {
-            return reply(null, out_list);
+            return reply(null, out_list)
           }
         } catch (err) {
           intern.has_error(seneca, err, ctx, reply)
@@ -920,7 +919,7 @@ function make_intern() {
     outbound: function (ctx, ent, data) {
       if (null == data) return null
       let entity_options = intern.entity_options(ent, ctx)
-      data = ctx.options.unmarshall(data)
+      data = unmarshall(data)
 
       if (entity_options) {
         var fields = entity_options.fields || {}

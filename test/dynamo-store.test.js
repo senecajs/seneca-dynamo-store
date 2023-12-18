@@ -3,8 +3,6 @@
 
 const AWS_SDK = require('@aws-sdk/client-dynamodb')
 
-const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
-
 const Code = require('@hapi/code')
 const expect = Code.expect
 
@@ -34,8 +32,6 @@ function make_seneca(config) {
         Object.assign(
           {
             sdk: () => AWS_SDK,
-            marshall,
-            unmarshall,
             aws: {
               region: 'region',
               endpoint: process.env.SENECA_DYNAMO_ENDPOINT || 'http://localhost:18000',
