@@ -378,10 +378,12 @@ const schema = [
         "KeyType": "HASH",
         "AttributeName": "id"
       },
+      /*
       {
         "KeyType": "RANGE",
         "AttributeName": "sk1"
       }
+      */
     ],
     "AttributeDefinitions": [
       {
@@ -392,10 +394,12 @@ const schema = [
         "AttributeName": "id",
         "AttributeType": "S"
       },
+      /*
       {
         "AttributeName": "sk1",
         "AttributeType": "S"
       },
+      */
       {
         "AttributeName": "ip2",
         "AttributeType": "S"

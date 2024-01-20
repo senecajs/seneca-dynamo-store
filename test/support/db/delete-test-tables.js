@@ -11,6 +11,8 @@ delete_table_if_not_exists('racers', ddb, { verbose: true })
 delete_table_if_not_exists('users', ddb, { verbose: true })
 delete_table_if_not_exists('customers', ddb, { verbose: true })
 delete_table_if_not_exists('products', ddb, { verbose: true })
+delete_table_if_not_exists('query01', ddb, { verbose: true })
+delete_table_if_not_exists('query02', ddb, { verbose: true })
 
 
 function delete_table_if_not_exists(table, ddb, opts = {}) {

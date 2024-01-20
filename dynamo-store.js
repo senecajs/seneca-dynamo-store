@@ -4,6 +4,12 @@
 const Seneca = require('seneca')
 const { Required, Open } = Seneca.valid
 
+// AWS utility
+const {
+  marshall,
+  unmarshall
+} = require('@aws-sdk/util-dynamodb')
+
 module.exports = dynamo_store
 
 module.exports.errors = {}
@@ -22,7 +28,7 @@ module.exports.defaults = {
   aws: Open({}),
 
   // See https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html#constructor-property
-  dc: Open({
+  client: Open({
     // Latest version of dynamodb supports empty strings
     convertEmptyValues: false,
   }),
@@ -33,6 +39,8 @@ module.exports.defaults = {
 
 function dynamo_store(options) {
   var seneca = this
+  
+  const AWS = options.sdk()
 
   // TODO: need a better way to do this
   options = seneca.util.deep(
@@ -55,12 +63,10 @@ function dynamo_store(options) {
   var meta = init(seneca, options, store)
 
   seneca.add({ init: store.name, tag: meta.tag }, function (msg, reply) {
-    const AWS_SDK = options.sdk()
-    AWS_SDK.config.update(intern.clean_config(options.aws))
-    ctx.dc = new AWS_SDK.DynamoDB.DocumentClient(
-      intern.clean_config(options.dc),
+    ctx.client = new AWS.DynamoDB(
+      intern.clean_config(options.aws),
     )
-
+    
     reply()
   })
 
@@ -68,8 +74,8 @@ function dynamo_store(options) {
     name: store.name,
     tag: meta.tag,
     exports: {
-      get_dc: () => {
-        return ctx.dc
+      get_client: () => {
+        return ctx.client
       },
     },
   }
@@ -165,6 +171,14 @@ function make_intern() {
 
     make_store: function (ctx) {
       const opts = ctx.options
+      
+      const {
+        PutItemCommand,
+        UpdateItemCommand,
+        ScanCommand,
+        DeleteItemCommand,
+        BatchWriteItemCommand
+      } = opts.sdk()
 
       const store = {
         name: ctx.name,
@@ -188,7 +202,7 @@ function make_intern() {
             null == q.merge$ ? false !== opts.merge : false !== q.merge$
 
           data = intern.inbound(ctx, ent, data)
-
+  
           // Create new Item.
           if (!update) {
             let new_id = ent.id$
@@ -223,28 +237,35 @@ function make_intern() {
           }
 
           if (!update || !merge) {
+
             var req = {
               TableName: ti.name,
               ConditionExpression: 'attribute_not_exists(id)',
-              Item: data,
+              Item: marshall(data),
             }
 
             // console.log('PUT', req)
+            const dycmd = new PutItemCommand(req)
+            
+            ctx.client
+              .send(dycmd)
+              .then(res => {
+                // Reload to get data as per db
+                let dq = { id: data.id }
+                let sortkey = ti.key && ti.key.sort
+                if (null != sortkey) {
+                  dq[sortkey] = data[sortkey]
+                }
 
-            ctx.dc.put(req, function (err, res) {
-              if (intern.has_error(seneca, err, ctx, reply)) return undefined
+                // console.log('QQQ', dq)
 
-              // Reload to get data as per db
-              let dq = { id: data.id }
-              let sortkey = ti.key && ti.key.sort
-              if (null != sortkey) {
-                dq[sortkey] = data[sortkey]
-              }
-
-              // console.log('QQQ', dq)
-
-              return intern.id_get(ctx, seneca, ent, ti, dq, reply)
-            })
+                return intern.id_get(ctx, seneca, ent, ti, dq, reply)
+              
+              })
+              .catch(err =>
+                intern.has_error(seneca, err, ctx, reply)
+              )
+            
           }
 
           // Update existing Item
@@ -271,19 +292,24 @@ function make_intern() {
                   (k) => null == Object.values(tb_key).find((v) => v == k),
                 )
                 .reduce(
-                  (o, k) => ((o[k] = { Action: 'PUT', Value: data[k] }), o),
+                  (o, k) => ((o[k] = { Action: 'PUT', Value: marshall(data[k]) }), o),
                   {},
                 ),
             }
-
+            
             // console.log('UPR', upreq)
+            
+            const dycmd = new UpdateItemCommand(upreq)
+            
+            ctx.client
+              .send(dycmd)
+              .then(upres => {
 
-            ctx.dc.update(upreq, function (uperr, upres) {
-              if (intern.has_error(seneca, uperr, ctx, reply)) return
-
-              // Reload to get data as per db
-              return intern.id_get(ctx, seneca, ent, ti, data, reply)
-            })
+                // Reload to get data as per db
+                return intern.id_get(ctx, seneca, ent, ti, data, reply)
+              })
+              .catch(uperr =>
+                intern.has_error(seneca, uperr, ctx, reply) )
           }
 
           function is_upsert(msg) {
@@ -318,9 +344,10 @@ function make_intern() {
           async function do_upsert(ctx, args) {
             const { upsert_fields, table, doc, new_id } = args
 
-            // TODO: redesign - will not work
 
-            const scanned = await ctx.dc
+            // TODO: redesign - will not work
+            /*
+            const scanned = await ctx.client
               .scan({
                 TableName: table,
                 ScanFilter: upsert_fields.reduce((acc, k) => {
@@ -343,7 +370,7 @@ function make_intern() {
               .promise()
 
             if (0 === scanned.Items.length) {
-              await ctx.dc
+              await ctx.client
                 .put({
                   TableName: table,
                   Item: { ...doc, id: new_id },
@@ -355,7 +382,7 @@ function make_intern() {
 
             const [item] = scanned.Items
 
-            await ctx.dc
+            await ctx.client
               .update({
                 TableName: table,
 
@@ -375,7 +402,65 @@ function make_intern() {
               .promise()
 
             return { id: item.id }
+            */
+            
+            try {
+              let dycmd = new ScanCommand({
+                TableName: table,
+                ScanFilter: upsert_fields.reduce((acc, k) => {
+                  if (doc[k] === null || doc[k] === undefined) {
+                    acc[k] = {
+                      ComparisonOperator: 'NULL',
+                    }
+                  } else {
+                    acc[k] = {
+                      ComparisonOperator: 'EQ',
+                      AttributeValueList: Array.isArray(doc[k]) ? doc[k] : [doc[k]],
+                    }
+                  }
+
+                  return acc
+                }, {}),
+              })
+              
+              const scanned = await ctx.client.send(dycmd)
+
+
+              if (scanned.Count === 0) {
+                dycmd = new PutItemCommand({
+                  TableName: table,
+                  Item: marshall({ ...doc, id: new_id }),
+                })
+                await ctx.client.send(dycmd)
+
+                return { id: new_id }
+              }
+
+              const [ item ] = scanned.Items
+              
+              dycmd = new UpdateItemCommand({
+                TableName: table,
+                Key: { id: item.id },
+                AttributeUpdates: Object.keys(doc)
+                  .filter((k) => !upsert_fields.includes(k))
+                  .reduce((acc, k) => {
+                    acc[k] = {
+                      Action: 'PUT',
+                      Value: marshall(doc[k]),
+                    }
+                    return acc
+                  }, {}),
+              })
+              
+              await ctx.client.send(dycmd)
+
+              return { id: item.id }
+            } catch (err) {
+              reply(err, null)
+            }
+  
           }
+          
         },
 
         load: function (msg, reply) {
@@ -461,19 +546,27 @@ function make_intern() {
 
                 batchreq.RequestItems[ti.name] = list.map((item) => ({
                   DeleteRequest: {
-                    Key: { id: item.id },
+                    Key: { id: { S: item.id } },
                   },
                 }))
 
                 if (0 === batchreq.RequestItems[ti.name].length) {
                   return reply()
                 }
-
-                ctx.dc.batchWrite(batchreq, function (batcherr, batchres) {
-                  if (intern.has_error(seneca, batcherr, ctx, reply)) return
-
-                  reply()
-                })
+                
+                // console.log('BATCHREQ: ', batchreq)
+                
+                const dycmd = new BatchWriteItemCommand(batchreq)
+                
+                ctx.client
+                  .send(dycmd)
+                  .then(batchres =>
+                    reply()
+                  )
+                  .catch(batcherr =>
+                    intern.has_error(seneca, batcherr, ctx, reply)
+                  )
+                
               } else {
                 qid = 0 < list.length ? list[0].id : null
                 return remove_single_by_id({ id: qid })
@@ -508,20 +601,25 @@ function make_intern() {
             )
 
             console.log('SENECA DYNAMO REMOVE REQ', delreq)
-
-            ctx.dc.delete(delreq, function (delerr, delres) {
-              console.log('SENECA DYNAMO REMOVE RES', delerr, delres)
-
-              if (intern.has_error(seneca, delerr, ctx, reply)) return
-
-              reply(old)
-            })
+            
+            const dycmd = new DeleteItemCommand(delreq)
+            
+            ctx.client
+              .send(dycmd)
+              .then(delres => {
+                console.log('SENECA DYNAMO REMOVE RES', delres)
+                reply(old)
+              })
+              .catch(delerr =>
+                intern.has_error(seneca, delerr, ctx, reply)
+              )
           }
+          
         },
 
         native: function (msg, reply) {
           reply({
-            dc: ctx.dc,
+            client: ctx.client,
           })
         },
       }
@@ -539,17 +637,21 @@ function make_intern() {
     },
 
     build_req_key(req, table, q) {
+  
       req.Key = { id: 'string' === typeof q ? q : q.id }
 
       let sortkey = table.key && table.key.sort
       if (sortkey) {
         req.Key[sortkey] = q[sortkey]
       }
+      req.Key = marshall(req.Key)
 
       return req
     },
 
     id_get: function (ctx, seneca, ent, table, q, reply) {
+      const { GetItemCommand } = ctx.options.sdk()
+      
       let ti = intern.tableinfo(table)
 
       const getreq = intern.build_req_key(
@@ -559,44 +661,52 @@ function make_intern() {
         table,
         q,
       )
-
+      
+      const dycmd = new GetItemCommand(getreq)
       // console.log('GETREQ: ', getreq)
-
-      ctx.dc.get(getreq, function (geterr, getres) {
-        if (intern.has_error(seneca, geterr, ctx, reply)) return
-
-        var data = null == getres.Item ? null : getres.Item
-        data = intern.outbound(ctx, ent, data)
-        var out_ent = null == data ? null : ent.make$(data)
-        reply(null, out_ent)
-      })
+      
+      ctx.client
+        .send(dycmd)
+        .then(getres => {
+          let data = null == getres.Item ? null : getres.Item
+          data = intern.outbound(ctx, ent, data)
+          let out_ent = null == data ? null : ent.make$(data)
+          reply(null, out_ent)
+        })
+        .catch(geterr =>
+          intern.has_error(seneca, geterr, ctx, reply)
+        )
+      
     },
 
-    build_ops(qv, kname, type) {
+    build_cmps(qv, kname, type) {
       if ('object' != typeof qv) {
         //  && !Array.isArray(qv)) {
-        return { cmps: [{ c: '$ne', cmpop: '=', k: kname, v: qv }] }
+        return { cmps: [{ c: 'eq$', cmpop: '=', k: kname, v: qv }] }
       }
 
       let ops = {
-        $gte: { cmpop: '>' },
-        $gt: { cmpop: '>=' },
-        $lt: { cmpop: '<=' },
-        $lte: { cmpop: '<' },
-        $ne: { cmpop: '=' },
+        gt$: { cmpop: '>' },
+        gte$: { cmpop: '>=' },
+        lt$: { cmpop: '<' },
+        lte$: { cmpop: '<=' },
+        eq$: { cmpop: '=' },
+        ne$: { cmpop: '!=' }
       }
 
       // console.log('QV: ', typeof qv, qv)
 
       let cmps = []
+      
       for (let k in qv) {
-        let op = ops[k]
-        if (op) {
-          op.k = kname
-          op.v = qv[k]
-          op.c = k
-          cmps.push(op)
-        } else if (k.startsWith('$')) {
+        let cmp = ops[k]
+        if (cmp) {
+          cmp = { ...cmp }
+          cmp.k = kname
+          cmp.v = qv[k]
+          cmp.c = k
+          cmps.push(cmp)
+        } else if (k.endsWith('$')) {
           throw new Error('Invalid Comparison Operator: ' + k)
         }
       }
@@ -612,6 +722,8 @@ function make_intern() {
 
     listent: function (ctx, seneca, qent, ti, q, reply) {
       var isarr = Array.isArray
+      const { ScanCommand, QueryCommand } = ctx.options.sdk()
+      
       if (isarr(q) || 'object' != typeof q) {
         q = { id: q }
       }
@@ -625,25 +737,26 @@ function make_intern() {
 
       let cq = seneca.util.clean(q)
       let fq = cq
-
-      if (null != fq.$sort) {
-        let sort_index = {
+      if ('object' == typeof q.sort$ && 0 != Object.keys(q.sort$).length) {
+        let sortkey$ = Object.keys(q.sort$)[0]
+        let scan_index = {
           1: true, // ascending
           '-1': false, // descending
         }
-        let sort_mode = sort_index[fq.$sort]
-
-        null != sort_mode && (listreq.ScanIndexForward = sort_mode)
-        delete fq.$sort
+        let scan_mode = scan_index[q.sort$[sortkey$]]
+        if (null == scan_mode) {
+          throw new Error('Invalid sort key')
+        }
+        listreq.ScanIndexForward = scan_mode
       }
-
+      
       // hash and range key must be used together
       if (null != sortkey && null != cq.id && null != cq[sortkey]) {
         listop = 'query'
         listreq.KeyConditionExpression = `id = :hashKey and #${sortkey}n = :rangeKey`
         listreq.ExpressionAttributeValues = {
-          ':hashKey': cq.id,
-          ':rangeKey': cq[sortkey],
+          ':hashKey': marshall(cq.id),
+          ':rangeKey': marshall(cq[sortkey]),
         }
         listreq.ExpressionAttributeNames = {}
         listreq.ExpressionAttributeNames[`#${sortkey}n`] = sortkey
@@ -660,17 +773,28 @@ function make_intern() {
           if (null != pk && null != fq[pk]) {
             listop = 'query'
             listreq.IndexName = indexdef.name
-            listreq.KeyConditionExpression = `#${pk}n = :${pk}i`
+            let fq_pk = intern.build_cmps(fq[pk], pk, 'sort')
+            
+            // Query key condition not supported
+            // other than '='
+            listreq.KeyConditionExpression =
+              fq_pk.cmps
+                .map((c, i) => `#${c.k}nn ${c.cmpop} :${c.k + i}ii`)
+                .join(' and ')
+                  
             listreq.ExpressionAttributeValues = {}
-            listreq.ExpressionAttributeValues[`:${pk}i`] = fq[pk]
+            fq_pk.cmps.forEach((c, i) => {
+              listreq.ExpressionAttributeValues[`:${c.k + i}ii`] = marshall(c.v)
+            })
+            
             listreq.ExpressionAttributeNames = {}
-            listreq.ExpressionAttributeNames[`#${pk}n`] = pk
+            listreq.ExpressionAttributeNames[`#${pk}nn`] = pk
 
             delete fq[pk]
 
             let sk = indexdefkey.sort
             if (null != sk && null != fq[sk]) {
-              let fq_op = intern.build_ops(fq[sk], sk, 'sort')
+              let fq_op = intern.build_cmps(fq[sk], sk, 'sort')
 
               listreq.KeyConditionExpression +=
                 ' and ' +
@@ -679,7 +803,7 @@ function make_intern() {
                   .join(' and ')
 
               fq_op.cmps.forEach((c, i) => {
-                listreq.ExpressionAttributeValues[`:${c.k + i}i`] = c.v
+                listreq.ExpressionAttributeValues[`:${c.k + i}i`] = marshall(c.v)
               })
               listreq.ExpressionAttributeNames[`#${sk}n`] = sk
               delete fq[sk]
@@ -693,12 +817,12 @@ function make_intern() {
       if (0 < Object.keys(fq).length) {
         listreq.FilterExpression = Object.keys(cq)
           .map((k) => {
-            let cq_k = isarr(cq[k]) ? cq[k] : [cq[k]]
+            let cq_k = isarr(cq[k]) ? cq[k] : [ cq[k] ]
             return (
               '(' +
               cq_k
                 .map((v, i) => {
-                  let cq_v = intern.build_ops(v, k)
+                  let cq_v = intern.build_cmps(v, k)
                   // console.log('cq_v: ', cq_v)
                   return cq_v.cmps
                     .map(
@@ -712,8 +836,9 @@ function make_intern() {
           })
           .join(' and ')
 
+
         listreq.ExpressionAttributeNames = Object.keys(cq).reduce(
-          (a, k) => ((a['#' + k] = k), a),
+          (a, k) => ((a['#' + k] = k ), a),
           listreq.ExpressionAttributeNames || {},
         )
 
@@ -721,8 +846,8 @@ function make_intern() {
           let cq_k = isarr(cq[k]) ? cq[k] : [cq[k]]
 
           cq_k.forEach((v, i) => {
-            let cq_v = intern.build_ops(v, k)
-            cq_v.cmps.forEach((c, j) => (a[':' + c.k + i + j + 'n'] = c.v))
+            let cq_v = intern.build_cmps(v, k)
+            cq_v.cmps.forEach((c, j) => (a[':' + c.k + i + j + 'n'] = marshall(c.v) ))
           })
 
           return a
@@ -741,12 +866,36 @@ function make_intern() {
       // console.log('LISTREQ', q, listop, listreq)
 
       let out_list = []
-      function page(paramExclusiveStartKey) {
+      async function page(paramExclusiveStartKey) {
         if (null != paramExclusiveStartKey) {
           listreq.ExclusiveStartKey = paramExclusiveStartKey
         }
+        
+        try {
+          let Command = listop == 'scan' ? ScanCommand : QueryCommand
+          
+          const dycmd = new Command(listreq)
+          
+          const listRes = await ctx.client.send(dycmd)
 
-        ctx.dc[listop](listreq, function (listerr, listres) {
+          if (listRes.Items && listRes.Items.length > 0) {
+            listRes.Items.forEach((item) =>
+              out_list.push(qent.make$(intern.outbound(ctx, qent, item)))
+            )
+          }
+          // console.log('out_list: ', out_list)
+
+          if (listRes.LastEvaluatedKey) {
+            setImmediate(() => page(listRes.LastEvaluatedKey))
+          } else {
+            return reply(null, out_list)
+          }
+        } catch (err) {
+          intern.has_error(seneca, err, ctx, reply)
+        }
+     
+        /*
+        ctx.client[listop](listreq, function (listerr, listres) {
           if (intern.has_error(seneca, listerr, ctx, reply)) return
 
           if (null != listres.Items) {
@@ -759,6 +908,7 @@ function make_intern() {
             return reply(null, out_list)
           }
         })
+        */
       }
 
       page()
@@ -784,6 +934,7 @@ function make_intern() {
     outbound: function (ctx, ent, data) {
       if (null == data) return null
       let entity_options = intern.entity_options(ent, ctx)
+      data = unmarshall(data)
 
       if (entity_options) {
         var fields = entity_options.fields || {}

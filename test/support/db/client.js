@@ -1,4 +1,4 @@
-const AWS = require('aws-sdk')
+const AWS = require('@aws-sdk/client-dynamodb')
 const config = require('./config')
 
 module.exports = {
