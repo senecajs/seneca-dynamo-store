@@ -20,7 +20,7 @@ function make_seneca(config) {
   return (
     Seneca(Object.assign({ legacy: false }, config.seneca))
       .test()
-      
+
       .use('promisify')
       // make sure mem-store isn't being tested!
       .use('entity', { mem_store: false })
@@ -32,11 +32,12 @@ function make_seneca(config) {
             sdk: () => AWS_SDK,
             aws: {
               region: 'region',
-              endpoint: process.env.SENECA_DYNAMO_ENDPOINT || 'http://localhost:18000',
+              endpoint:
+                process.env.SENECA_DYNAMO_ENDPOINT || 'http://localhost:18000',
               credentials: {
                 accessKeyId: 'none',
                 secretAccessKey: 'none',
-              }
+              },
             },
           },
           config.plugin,
@@ -319,7 +320,7 @@ lab.test('comparison-query', async () => {
   }
   list = await si.entity('query02').list$(qop)
   expect(list.length).equal(2)
-  
+
   // table.key.sort and hashKey
   qop = {
     id: 'q0',
@@ -331,7 +332,12 @@ lab.test('comparison-query', async () => {
 
   qop = { ip3: 'AA', is2: { lte$: 1, gt$: 2 } } // KeyCondition error
   qop = { ip3: 'AA', is2: { lte$: 1 } }
-  qop = { d: { gt$: 10, lt$: 13 }, ip3: 'BB', is2: { lte$: 3 }, sort$: { is2: 1 } }
+  qop = {
+    d: { gt$: 10, lt$: 13 },
+    ip3: 'BB',
+    is2: { lte$: 3 },
+    sort$: { is2: 1 },
+  }
   list = await si.entity('query02').list$(qop)
   // console.log("LIST: ", list)
   expect(list.map((ent) => ent.d)).equal([11, 12])
@@ -404,10 +410,12 @@ lab.test('store-with-sortkey', async () => {
     d: 14,
     ip3: 'BBB',
   })
-  
+
   // { ip3: { $lt: 'CC' }, sort$: { is2: -1 }}
   // Query key condition not supported
-  let list = await si.entity('query02').list$({ ip3: { eq$: 'BB' }, sort$: { is2: 1 }})
+  let list = await si
+    .entity('query02')
+    .list$({ ip3: { eq$: 'BB' }, sort$: { is2: 1 } })
   // console.log('list: ', list)
 
   // should delete entry with sortkey
