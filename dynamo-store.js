@@ -28,6 +28,16 @@ module.exports.defaults = {
     convertEmptyValues: false,
   }),
 
+  marshall: Open({
+    removeUndefinedValues: true,
+    convertEmptyValues: false,
+    convertClassInstanceToMap: true,
+  }),
+
+  unmarshall: Open({
+    wrapNumbers: false,
+  }),
+
   // entity meta data, by canon string
   entity: {},
 }
@@ -227,11 +237,14 @@ function make_intern() {
           }
 
           if (!update || !merge) {
-            var req = {
+            const req = {
               TableName: ti.name,
               ConditionExpression: 'attribute_not_exists(id)',
-              Item: marshall(data),
+              Item: marshall(data, ctx.options.marshall),
             }
+
+            console.log('PUT', msg)
+            console.dir(req, { depth: null })
 
             const dycmd = new PutItemCommand(req)
 
@@ -261,6 +274,7 @@ function make_intern() {
               },
               ti,
               data,
+              ctx,
             )
 
             // cannot update sortkey
@@ -275,7 +289,11 @@ function make_intern() {
                 )
                 .reduce(
                   (o, k) => (
-                    (o[k] = { Action: 'PUT', Value: marshall(data[k]) }), o
+                    (o[k] = {
+                      Action: 'PUT',
+                      Value: marshall(data[k], ctx.options.marshall),
+                    }),
+                    o
                   ),
                   {},
                 ),
@@ -409,7 +427,7 @@ function make_intern() {
               if (scanned.Count === 0) {
                 dycmd = new PutItemCommand({
                   TableName: table,
-                  Item: marshall({ ...doc, id: new_id }),
+                  Item: marshall({ ...doc, id: new_id }, ctx.options.marshall),
                 })
                 await ctx.client.send(dycmd)
 
@@ -426,7 +444,7 @@ function make_intern() {
                   .reduce((acc, k) => {
                     acc[k] = {
                       Action: 'PUT',
-                      Value: marshall(doc[k]),
+                      Value: marshall(doc[k], ctx.options.marshall),
                     }
                     return acc
                   }, {}),
@@ -559,6 +577,7 @@ function make_intern() {
               },
               ti,
               q,
+              ctx,
             )
 
             const dycmd = new DeleteItemCommand(delreq)
@@ -591,14 +610,14 @@ function make_intern() {
       return tableInfo
     },
 
-    build_req_key(req, table, q) {
+    build_req_key(req, table, q, ctx) {
       req.Key = { id: 'string' === typeof q ? q : q.id }
 
       let sortkey = table.key && table.key.sort
       if (sortkey) {
         req.Key[sortkey] = q[sortkey]
       }
-      req.Key = marshall(req.Key)
+      req.Key = marshall(req.Key, ctx.options.marshall)
 
       return req
     },
@@ -614,6 +633,7 @@ function make_intern() {
         },
         table,
         q,
+        ctx,
       )
 
       const dycmd = new GetItemCommand(getreq)
@@ -703,8 +723,8 @@ function make_intern() {
         listop = 'query'
         listreq.KeyConditionExpression = `id = :hashKey and #${sortkey}n = :rangeKey`
         listreq.ExpressionAttributeValues = {
-          ':hashKey': marshall(cq.id),
-          ':rangeKey': marshall(cq[sortkey]),
+          ':hashKey': marshall(cq.id, ctx.options.marshall),
+          ':rangeKey': marshall(cq[sortkey], ctx.options.marshall),
         }
         listreq.ExpressionAttributeNames = {}
         listreq.ExpressionAttributeNames[`#${sortkey}n`] = sortkey
@@ -731,7 +751,10 @@ function make_intern() {
 
             listreq.ExpressionAttributeValues = {}
             fq_pk.cmps.forEach((c, i) => {
-              listreq.ExpressionAttributeValues[`:${c.k + i}ii`] = marshall(c.v)
+              listreq.ExpressionAttributeValues[`:${c.k + i}ii`] = marshall(
+                c.v,
+                ctx.options.marshall,
+              )
             })
 
             listreq.ExpressionAttributeNames = {}
@@ -752,6 +775,7 @@ function make_intern() {
               fq_op.cmps.forEach((c, i) => {
                 listreq.ExpressionAttributeValues[`:${c.k + i}i`] = marshall(
                   c.v,
+                  ctx.options.marshall,
                 )
               })
               listreq.ExpressionAttributeNames[`#${sk}n`] = sk
@@ -795,7 +819,11 @@ function make_intern() {
           cq_k.forEach((v, i) => {
             let cq_v = intern.build_cmps(v, k)
             cq_v.cmps.forEach(
-              (c, j) => (a[':' + c.k + i + j + 'n'] = marshall(c.v)),
+              (c, j) =>
+                (a[':' + c.k + i + j + 'n'] = marshall(
+                  c.v,
+                  ctx.options.marshall,
+                )),
             )
           })
 
@@ -827,7 +855,9 @@ function make_intern() {
 
           if (listRes.Items && listRes.Items.length > 0) {
             listRes.Items.forEach((item) =>
-              out_list.push(qent.make$(intern.outbound(ctx, qent, item))),
+              out_list.push(
+                qent.make$(intern.outbound(ctx, qent, item, ctx.options)),
+              ),
             )
           }
 
@@ -880,7 +910,7 @@ function make_intern() {
     outbound: function (ctx, ent, data) {
       if (null == data) return null
       let entity_options = intern.entity_options(ent, ctx)
-      data = unmarshall(data)
+      data = unmarshall(data, ctx.options.unmarshall)
 
       if (entity_options) {
         var fields = entity_options.fields || {}
