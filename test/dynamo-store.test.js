@@ -1,7 +1,7 @@
 /* Copyright (c) 2019-2022 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-const AWS_SDK = require('@aws-sdk/client-dynamodb')
+// const AWS_SDK = require('@aws-sdk/client-dynamodb')
 
 const Code = require('@hapi/code')
 const expect = Code.expect
@@ -29,7 +29,7 @@ function make_seneca(config) {
         '..',
         Object.assign(
           {
-            sdk: () => AWS_SDK,
+            // sdk: () => AWS_SDK,
             aws: {
               region: 'region',
               endpoint:

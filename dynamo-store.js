@@ -2,10 +2,11 @@
 'use strict'
 
 const Seneca = require('seneca')
-const { Required, Open } = Seneca.valid
+const { Open } = Seneca.valid
 
 // AWS utility
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
+const DynamoDBClient = require('@aws-sdk/client-dynamodb')
 
 module.exports = dynamo_store
 
@@ -15,9 +16,6 @@ const intern = (module.exports.intern = make_intern())
 
 module.exports.defaults = {
   test: false,
-
-  // Provide AWS SDK (via function) externally so that it is not dragged into lambdas.
-  sdk: Required(Function),
 
   // preserve undefined fields when saving
   merge: true,
@@ -36,8 +34,6 @@ module.exports.defaults = {
 
 function dynamo_store(options) {
   const seneca = this
-
-  const AWS = options.sdk()
 
   // TODO: need a better way to do this
   options = seneca.util.deep(
@@ -60,7 +56,7 @@ function dynamo_store(options) {
   var meta = init(seneca, options, store)
 
   seneca.add({ init: store.name, tag: meta.tag }, function (msg, reply) {
-    ctx.client = new AWS.DynamoDB(intern.clean_config(options.aws))
+    ctx.client = new DynamoDBClient.DynamoDB(intern.clean_config(options.aws))
 
     reply()
   })
@@ -173,7 +169,7 @@ function make_intern() {
         ScanCommand,
         DeleteItemCommand,
         BatchWriteItemCommand,
-      } = opts.sdk()
+      } = DynamoDBClient
 
       const store = {
         name: ctx.name,
@@ -608,7 +604,7 @@ function make_intern() {
     },
 
     id_get: function (ctx, seneca, ent, table, q, reply) {
-      const { GetItemCommand } = ctx.options.sdk()
+      const { GetItemCommand } = DynamoDBClient
 
       let ti = intern.tableinfo(table)
 
@@ -674,7 +670,7 @@ function make_intern() {
 
     listent: function (ctx, seneca, qent, ti, q, reply) {
       var isarr = Array.isArray
-      const { ScanCommand, QueryCommand } = ctx.options.sdk()
+      const { ScanCommand, QueryCommand } = DynamoDBClient
 
       if (isarr(q) || 'object' != typeof q) {
         q = { id: q }
