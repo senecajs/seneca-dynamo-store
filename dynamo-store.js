@@ -243,8 +243,8 @@ function make_intern() {
               Item: marshall(data, ctx.options.marshall),
             }
 
-            console.log('PUT', msg)
-            console.dir(req, { depth: null })
+            // console.log('PUT', msg)
+            // console.dir(req, { depth: null })
 
             const dycmd = new PutItemCommand(req)
 
