@@ -5,6 +5,26 @@ const ddb = DynamoDb.connect({ verbose: true })
 
 const schema = [
   {
+    TableName: 'ENT0',
+    KeySchema: [
+      {
+        AttributeName: 'id',
+        KeyType: 'HASH',
+      },
+    ],
+    AttributeDefinitions: [
+      {
+        AttributeName: 'id',
+        AttributeType: 'S',
+      },
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5
+    }
+  },
+
+  {
     TableName: 'test_foo',
     KeySchema: [
       {

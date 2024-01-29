@@ -3,6 +3,7 @@ const DynamoDb = require('./client')
 const ddb = DynamoDb.connect({ verbose: true })
 
 
+delete_table_if_not_exists('ENT0', ddb, { verbose: true })
 delete_table_if_not_exists('test_foo', ddb, { verbose: true })
 delete_table_if_not_exists('foo', ddb, { verbose: true })
 delete_table_if_not_exists('moon_bar', ddb, { verbose: true })
