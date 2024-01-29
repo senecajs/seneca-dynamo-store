@@ -233,7 +233,7 @@ function make_intern() {
               return
             }
 
-            data.id = new_id
+            ent.id = data.id = new_id
           }
 
           if (!update || !merge) {
