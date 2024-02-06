@@ -46,12 +46,6 @@ function make_seneca(config) {
   )
 }
 
-async function generate_entries(si, q_name, entries) {
-  for (let entry of entries) {
-    await si.entity(q_name).save$(entry)
-  }
-}
-
 lab.test('validate', PluginValidator(Plugin, module))
 
 lab.test('happy', async () => {
@@ -71,8 +65,8 @@ lab.test('no-dups', async () => {
   si.quiet()
 
   let list = await si.entity('uniq01').list$()
-  for (let entry of list) {
-    await entry.remove$()
+  for (let item of list) {
+    await item.remove$()
   }
 
   let a0 = await si.entity('uniq01').save$({ id$: 'a0', x: 1, d: Date.now() })
@@ -131,9 +125,9 @@ lab.test('special-query', async () => {
   let list = await si.entity('query01').list$({})
   // console.log('EXISTING', list)
 
-  for (let entry of list) {
+  for (let item of list) {
     // console.log('REMOVE', list)
-    await entry.remove$({ id: entry.id, sk0: entry.sk0 })
+    await item.remove$({ id: item.id, sk0: item.sk0 })
   }
 
   // id: PartionKey
@@ -260,17 +254,17 @@ lab.test('comparison-query', async () => {
 
   await si.ready()
   si.quiet()
-
+  
   let qop = {}
   let list = await si.entity('query02').list$(qop)
 
-  for (let entry of list) {
+  for (let item of list) {
     // console.log('REMOVE', list)
-    await entry.remove$({ id: entry.id })
+    await item.remove$({ id: item.id })
   }
-
-  // generate entries for cmpops test
-  await generate_entries(si, 'query02', [
+  
+  // generate items for cmpops test
+  list = [
     { id$: 'q3', sk1: 'c', ip2: 'C', ip3: 'AA', is2: 1, d: 10 },
     { id$: 'q0', sk1: 'a', ip2: 'A', ip3: 'AA', is2: 0, d: 10 },
     { id$: 'q1', sk1: 'a', ip2: 'B', ip3: 'AA', is2: 0, d: 10 },
@@ -280,7 +274,10 @@ lab.test('comparison-query', async () => {
     { id$: 'q7', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 3, d: 12 },
     { id$: 'q6', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 2, d: 11 },
     { id$: 'q8', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 },
-  ])
+  ]
+  for(let item of list) {
+    await si.entity('query02').data$(item).save$()
+  }
 
   // sort-key comparison
   qop = { ip3: 'AA', is2: { lte$: 1 } }
@@ -389,18 +386,18 @@ lab.test('store-with-sortkey', async () => {
   await si.ready()
   si.quiet()
 
-  // should put entry with sortkey
+  // should put item with sortkey
   await si
     .entity('query02')
     .save$({ id$: 'q80', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 })
 
-  // should update entry with sortkey
+  // should update item with sortkey
   // overwrite ip2, ip3, is2, d
   await si
     .entity('query02')
     .save$({ id: 'q80', sk1: 'c', ip2: 'CC', ip3: 'BBB', is2: 2, d: 14 })
 
-  // should load entry with sortkey
+  // should load item with sortkey
   let q80 = await si.entity('query02').load$({ id: 'q80', sk1: 'c' })
   expect(q80.data$(false)).equal({
     sk1: 'c',
@@ -418,13 +415,13 @@ lab.test('store-with-sortkey', async () => {
     .list$({ ip3: { eq$: 'BB' }, sort$: { is2: 1 } })
   // console.log('list: ', list)
 
-  // should delete entry with sortkey
+  // should delete item with sortkey
   q80 = await si.entity('query02').remove$({ id: 'q80', sk1: 'c' })
 
   expect(q80).equal(null)
 
   // can't update the sortkey but
-  // you can remove that entry
+  // you can remove that item
   // and save the new sortkey with new content
   // delete-put
   q80 = await si.entity('query02').save$({ id$: 'q80', sk1: 'cc', d: 15 })
