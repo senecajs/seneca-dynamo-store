@@ -49,7 +49,7 @@ function make_seneca(config) {
 lab.test('validate', PluginValidator(Plugin, module))
 
 lab.test('happy', async () => {
-  var si = make_seneca()
+  const si = make_seneca()
   await si.ready()
   expect(si.find_plugin('dynamo-store$1')).exists()
 
@@ -60,7 +60,7 @@ lab.test('happy', async () => {
 })
 
 lab.test('no-dups', async () => {
-  var si = make_seneca()
+  const si = make_seneca()
   await si.ready()
   si.quiet()
 
@@ -224,139 +224,179 @@ lab.describe('special-query', () => {
   
 })
 
-lab.test('comparison-query', async () => {
-  var si = make_seneca({
-    plugin: {
-      entity: {
-        query02: {
-          table: {
-            name: 'query02',
-            key: {
-              partition: 'id',
-              // sort: 'sk1',
-            },
-            index: [
-              {
-                name: 'gsi_2',
-                key: {
-                  partition: 'ip2',
-                },
-              },
-              {
-                name: 'gsi_3',
-                key: {
-                  partition: 'ip3',
-                  sort: 'is2',
-                },
-              },
-            ],
+lab.describe('comparison-query', () => {
+  const plugin = {
+    entity: {
+      query02: {
+        table: {
+          name: 'query02',
+          key: {
+            partition: 'id',
+            sort: 'sk1',
           },
+          index: [
+            {
+              name: 'gsi_2',
+              key: {
+                partition: 'ip2',
+              },
+            },
+            {
+              name: 'gsi_3',
+              key: {
+                partition: 'ip3',
+                sort: 'is2',
+              },
+            },
+          ],
         },
       },
     },
+  }
+
+  const si = make_seneca({ plugin })
+
+  lab.before(() => si.ready())
+  
+  let list = null
+  let qop = {}
+  
+  lab.test('clear', async () => {
+    list = await si.entity('query02').list$()
+    for (let item of list) {
+      // console.log('REMOVE', list)
+      await item.remove$({ id: item.id })
+    }
+    list = await si.entity('query02').list$()
+    expect(list.length).equal(0)
+  })
+  
+  lab.test('generate items', async () => {
+    // generate items for cmpops test
+    list = [
+      { id$: 'q3', sk1: 'c', ip2: 'C', ip3: 'AA', is2: 1, d: 10 },
+      { id$: 'q0', sk1: 'a', ip2: 'A', ip3: 'AA', is2: 0, d: 10 },
+      { id$: 'q1', sk1: 'a', ip2: 'B', ip3: 'AA', is2: 0, d: 10 },
+      { id$: 'q2', sk1: 'b', ip2: 'B', ip3: 'AA', is2: 0, d: 10 },
+      { id$: 'q4', sk1: 'c', ip2: 'C', ip3: 'AA', is2: 2, d: 10 },
+      { id$: 'q5', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 0, d: 10 },
+      { id$: 'q7', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 3, d: 12 },
+      { id$: 'q6', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 2, d: 11 },
+      { id$: 'q8', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 },
+    ]
+    for(let item of list) {
+      await si.entity('query02')
+        .data$(item)
+        .save$()
+    }
+    list = await si.entity('query02').list$()
+    
+    expect(list.map((ent) => ent.id).sort()).equal([
+      'q0',
+      'q1',
+      'q2',
+      'q3',
+      'q4',
+      'q5',
+      'q6',
+      'q7',
+      'q8',
+    ])
+    
+  })
+  
+  lab.test('sort-index-key comparison', async () => {
+    // sort-key comparison
+    qop = { ip3: 'AA', is2: { lte$: 1 } }
+    list = await si.entity('query02').list$(qop)
+    // console.log('LIST: ', list)
+    expect(list.map((ent) => ent.is2)).equal([0, 0, 0, 1])
+
+    qop = { d: { eq$: 10 } }
+    list = await si.entity('query02').list$(qop)
+    // console.log('LIST: ', list)
+    expect(list.length).equal(6)
+
+    qop = { d: { gte$: 10 }, ip3: 'BB', is2: { gt$: 0 } }
+    list = await si.entity('query02').list$(qop)
+    // console.log('LIST: ', list)
+    expect(list.length).equal(3)
+  })
+  
+  lab.test('ASC sort$: 1', async () => {
+    // ascending
+    qop = { d: { gte$: 10 }, ip3: 'BB', is2: { lte$: 3 }, sort$: { is2: 1 } }
+    list = await si.entity('query02').list$(qop)
+    // console.log('LIST: ', list)
+    expect(list.map((ent) => ent.is2)).equal([0, 1, 2, 3])
+    
+    // table key.sort
+    qop = {
+      d: { eq$: 10 },
+      // sk1: { eq$: 'c' },
+      ip3: 'AA',
+      is2: { lte$: 3 },
+      sort$: { sk1: 1 },
+    }
+    list = await si.entity('query02').list$(qop)
+    // console.log(list)
+    expect(list.map(item => item.sk1)).equal([
+      'a',
+      'a',
+      'b',
+      'c',
+      'c',
+    ])
+    
+    // table.key.sort and hashKey
+    qop = {
+      id: 'q0',
+      sort$: { sk1: 1 },
+    }
+    list = await si.entity('query02').list$(qop)
+    // console.log("LIST: ", list)
+    expect(list.length).equal(1)
+  
+  })
+  
+  lab.test('DESC sort$: -1', async () => {
+    // descending
+    qop = { d: { gte$: 10 }, ip3: 'BB', is2: { gte$: 0 }, sort$: { is2: -1 } }
+    list = await si.entity('query02').list$(qop)
+    // console.log('LIST: ', list)
+    expect(list.map((ent) => ent.is2)).equal([3, 2, 1, 0])
+  })
+  
+  lab.test('more complicated tests', async () => {
+    qop = { ip3: 'AA', is2: { lte$: 1, gt$: 2 } } // KeyCondition error
+    qop = { ip3: 'AA', is2: { lte$: 1 } }
+    qop = {
+      d: { gt$: 10, lt$: 13 },
+      ip3: 'BB',
+      is2: { lte$: 3 },
+      sort$: { is2: 1 },
+    }
+    list = await si.entity('query02').list$(qop)
+    // console.log("LIST: ", list)
+    expect(list.map((ent) => ent.d)).equal([11, 12])
+
+    qop = { sk1: { gt$: 'a', lt$: 'c' } }
+    list = await si.entity('query02').list$(qop)
+    // console.log('LIST: ', list)
+    expect(list.map((ent) => ent.sk1)).equal(['b'])
+
+    list = await si
+      .entity('query02')
+      .list$({ d: [{ lt$: 11, gt$: 9 }, { eq$: 11 }] })
+    // console.log("LIST: ", list)
+    expect(list.length).equal(7)
+  
   })
 
-  await si.ready()
-  si.quiet()
-  
-  let qop = {}
-  let list = await si.entity('query02').list$(qop)
-
-  for (let item of list) {
-    // console.log('REMOVE', list)
-    await item.remove$({ id: item.id })
-  }
-  
-  // generate items for cmpops test
-  list = [
-    { id$: 'q3', sk1: 'c', ip2: 'C', ip3: 'AA', is2: 1, d: 10 },
-    { id$: 'q0', sk1: 'a', ip2: 'A', ip3: 'AA', is2: 0, d: 10 },
-    { id$: 'q1', sk1: 'a', ip2: 'B', ip3: 'AA', is2: 0, d: 10 },
-    { id$: 'q2', sk1: 'b', ip2: 'B', ip3: 'AA', is2: 0, d: 10 },
-    { id$: 'q4', sk1: 'c', ip2: 'C', ip3: 'AA', is2: 2, d: 10 },
-    { id$: 'q5', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 0, d: 10 },
-    { id$: 'q7', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 3, d: 12 },
-    { id$: 'q6', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 2, d: 11 },
-    { id$: 'q8', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 },
-  ]
-  for(let item of list) {
-    await si.entity('query02').data$(item).save$()
-  }
-
-  // sort-key comparison
-  qop = { ip3: 'AA', is2: { lte$: 1 } }
-  list = await si.entity('query02').list$(qop)
-  // console.log('LIST: ', list)
-  expect(list.map((ent) => ent.is2)).equal([0, 0, 0, 1])
-
-  qop = { d: { eq$: 10 } }
-  list = await si.entity('query02').list$(qop)
-  // console.log('LIST: ', list)
-  expect(list.length).equal(6)
-
-  qop = { d: { gte$: 10 }, ip3: 'BB', is2: { gt$: 0 } }
-  list = await si.entity('query02').list$(qop)
-  // console.log('LIST: ', list)
-  expect(list.length).equal(3)
-
-  // descending
-  qop = { d: { gte$: 10 }, ip3: 'BB', is2: { gte$: 0 }, sort$: { is2: -1 } }
-  list = await si.entity('query02').list$(qop)
-  // console.log('LIST: ', list)
-  expect(list.map((ent) => ent.is2)).equal([3, 2, 1, 0])
-
-  // ascending
-  qop = { d: { gte$: 10 }, ip3: 'BB', is2: { lte$: 3 }, sort$: { is2: 1 } }
-  list = await si.entity('query02').list$(qop)
-  // console.log('LIST: ', list)
-  expect(list.map((ent) => ent.is2)).equal([0, 1, 2, 3])
-
-  // table key.sort
-  qop = {
-    d: { eq$: 10 },
-    sk1: { eq$: 'c' },
-    ip3: 'AA',
-    is2: { lte$: 3 },
-    sort$: { sk1: 1 },
-  }
-  list = await si.entity('query02').list$(qop)
-  expect(list.length).equal(2)
-
-  // table.key.sort and hashKey
-  qop = {
-    id: 'q0',
-    sort$: { sk1: 1 },
-  }
-  list = await si.entity('query02').list$(qop)
-  // console.log("LIST: ", list)
-  expect(list.length).equal(1)
-
-  qop = { ip3: 'AA', is2: { lte$: 1, gt$: 2 } } // KeyCondition error
-  qop = { ip3: 'AA', is2: { lte$: 1 } }
-  qop = {
-    d: { gt$: 10, lt$: 13 },
-    ip3: 'BB',
-    is2: { lte$: 3 },
-    sort$: { is2: 1 },
-  }
-  list = await si.entity('query02').list$(qop)
-  // console.log("LIST: ", list)
-  expect(list.map((ent) => ent.d)).equal([11, 12])
-
-  qop = { sk1: { gt$: 'a', lt$: 'c' } }
-  list = await si.entity('query02').list$(qop)
-  // console.log('LIST: ', list)
-  expect(list.map((ent) => ent.sk1)).equal(['b'])
-
-  list = await si
-    .entity('query02')
-    .list$({ d: [{ lt$: 11, gt$: 9 }, { eq$: 11 }] })
-  // console.log("LIST: ", list)
-  expect(list.length).equal(7)
 })
 
 lab.test('store-with-sortkey', async () => {
-  var si = make_seneca({
+  const si = make_seneca({
     plugin: {
       entity: {
         query02: {
@@ -433,7 +473,7 @@ lab.test('store-with-sortkey', async () => {
 })
 
 lab.test('invalid-operators', async () => {
-  var si = make_seneca({
+  const si = make_seneca({
     plugin: {
       entity: {
         query01: {
@@ -482,7 +522,7 @@ lab.test('invalid-operators', async () => {
 })
 
 lab.test('injection-fails', async () => {
-  var si = make_seneca({
+  const si = make_seneca({
     plugin: {
       entity: {
         query01: {
@@ -553,10 +593,10 @@ lab.test('injection-fails', async () => {
 })
 
 lab.test('export', async () => {
-  var si = make_seneca()
+  const si = make_seneca()
   await si.ready()
 
-  var get_client = si.export('dynamo-store$1/get_client')
+  const get_client = si.export('dynamo-store$1/get_client')
   expect(get_client()).exists()
 })
 
@@ -604,7 +644,7 @@ lab.describe('legacy-store-test', () => {
   // })
 })
 
-var plugin = {
+let plugin = {
   entity: {
     'test/foo': {
       // for special handling
@@ -625,22 +665,22 @@ var plugin = {
 }
 
 lab.test('store-core', async () => {
-  var si = make_seneca({ plugin })
+  const si = make_seneca({ plugin })
   await testrun.store_core({ seneca: si, expect, xlog: console.log })
 })
 
 lab.test('store-load', async () => {
-  var si = make_seneca({ plugin })
+  const si = make_seneca({ plugin })
   await testrun.store_load({ seneca: si, expect, xlog: console.log })
 })
 
 lab.test('store-save', async () => {
-  var si = make_seneca({ plugin })
+  const si = make_seneca({ plugin })
   await testrun.store_save({ seneca: si, expect, xlog: console.log })
 })
 
 lab.test('custom-table', async () => {
-  var si = make_seneca({ plugin })
+  const si = make_seneca({ plugin })
   let c0 = await si
     .entity('test/custom')
     .data$({ w: Date.now(), x: 1, y: 'a' })
@@ -674,26 +714,26 @@ lab.test('custom-table', async () => {
 
 const testrun = {
   store_core: async function (opts) {
-    var seneca = opts.seneca
-    var expect = opts.expect
-    var log = opts.log
+    const seneca = opts.seneca
+    const expect = opts.expect
+    const log = opts.log
 
     // S00010: Clear test/foo
     await seneca.entity('test/foo').remove$({ all$: true })
-    var foolist = await seneca.entity('test/foo').list$()
+    let foolist = await seneca.entity('test/foo').list$()
 
     log && log('S00010', foolist)
     expect(foolist.length).equal(0)
 
     // S00100: Load non-existent returns null.
-    var foo0n = await seneca.entity('test/foo').load$('not-an-id')
+    let foo0n = await seneca.entity('test/foo').load$('not-an-id')
 
     log && log('S00100', foo0n)
     expect(foo0n).equal(null)
 
     // S00200: Create unsaved entity
-    var m0 = (Math.random() + '').substring(2)
-    var foo0p = seneca.entity('test/foo').make$({
+    let m0 = (Math.random() + '').substring(2)
+    let foo0p = seneca.entity('test/foo').make$({
       m: m0,
       s: 's0',
       i: 0,
@@ -719,7 +759,7 @@ const testrun = {
     })
 
     // S00300: Save entity; generates id
-    var foo0 = await foo0p.save$()
+    let foo0 = await foo0p.save$()
 
     log && log('S00300', foo0)
     expect(foo0).exists()
@@ -753,7 +793,7 @@ const testrun = {
     ])
 
     // S00400: Load existing by id returns entity.
-    var foo0o = await seneca.entity('test/foo').load$(foo0.id)
+    let foo0o = await seneca.entity('test/foo').load$(foo0.id)
 
     log && log('S00400', foo0.id, foo0o)
     expect(foo0o).exists()
@@ -761,43 +801,43 @@ const testrun = {
     expect(foo0o.data$()).equals(foo0.data$())
 
     // S00500: List by query
-    var foolist0 = await seneca.entity('test/foo').list$({ m: m0 })
+    let foolist0 = await seneca.entity('test/foo').list$({ m: m0 })
 
     log && log('S00500', m0, foolist0)
     expect(foolist0.length).equals(1)
     expect(foolist0[0].data$()).equals(foo0o.data$())
 
     // S00600: Remove by id
-    var foo0ro = await seneca.entity('test/foo').remove$(foo0.id)
+    let foo0ro = await seneca.entity('test/foo').remove$(foo0.id)
 
     log && log('S00600', foo0.id, foo0ro)
     expect(foo0ro).equal(null)
 
     // S00700: Load by removed id
-    var foo0r = await seneca.entity('test/foo').load$(foo0.id)
+    let foo0r = await seneca.entity('test/foo').load$(foo0.id)
 
     log && log('S00700', foo0.id, foo0r)
     expect(foo0r).equal(null)
 
     // S00800: List removed by query returns []
-    var foolist0r = await seneca.entity('test/foo').list$({ m: m0 })
+    let foolist0r = await seneca.entity('test/foo').list$({ m: m0 })
 
     log && log('S00800', m0, foolist0r)
     expect(foolist0r.length).equals(0)
   },
 
   store_load: async function (opts) {
-    var seneca = opts.seneca
-    var expect = opts.expect
-    var log = opts.log
+    const seneca = opts.seneca
+    const expect = opts.expect
+    const log = opts.log
 
     // S01000: Load by field
-    var m1 = (Math.random() + '').substring(2)
-    var foo1 = await seneca
+    let m1 = (Math.random() + '').substring(2)
+    let foo1 = await seneca
       .entity('test/foo')
       .make$({ m: m1, s: 's1', i: 1, b: true })
       .save$()
-    var foo1o = await seneca.entity('test/foo').load$({ m: m1 })
+    let foo1o = await seneca.entity('test/foo').load$({ m: m1 })
 
     log && log('S01000', foo1, foo1o)
     expect(foo1).exists()
@@ -805,27 +845,27 @@ const testrun = {
     expect(foo1.data$()).equal(foo1o.data$())
 
     // S01100: Load by two fields
-    var foo1om = await seneca.entity('test/foo').load$({ m: m1, s: 's1' })
+    let foo1om = await seneca.entity('test/foo').load$({ m: m1, s: 's1' })
 
     log && log('S01100', foo1om)
     expect(foo1om).exists()
     expect(foo1.data$()).equal(foo1om.data$())
 
     // S01200: Load with no fields finds nothing
-    var foo1n = await seneca.entity('test/foo').load$({})
+    let foo1n = await seneca.entity('test/foo').load$({})
 
     log && log('S01200', foo1n)
     expect(foo1n).equal(null)
   },
 
   store_save: async function (opts) {
-    var seneca = opts.seneca
-    var expect = opts.expect
-    var log = opts.log
+    const seneca = opts.seneca
+    const expect = opts.expect
+    const log = opts.log
 
     // S10000: new entity: null saved, undefined ignored
-    var m0 = (Math.random() + '').substring(2)
-    var foo0 = await seneca
+    let m0 = (Math.random() + '').substring(2)
+    let foo0 = await seneca
       .entity('test/foo')
       .make$({
         m: m0,
@@ -834,7 +874,7 @@ const testrun = {
         b: true,
       })
       .save$()
-    var foo0o = await seneca.entity('test/foo').load$(foo0.id)
+    let foo0o = await seneca.entity('test/foo').load$(foo0.id)
 
     log && log('S10000', foo0, foo0o)
     expect(foo0o.data$(false)).equal({
@@ -845,8 +885,8 @@ const testrun = {
     })
 
     // S10100: existing entity: null saved, undefined ignored
-    var m1 = (Math.random() + '').substring(2)
-    var foo1 = await seneca
+    let m1 = (Math.random() + '').substring(2)
+    let foo1 = await seneca
       .entity('test/foo')
       .make$({
         m: m1,
@@ -854,10 +894,10 @@ const testrun = {
         s2: 's2~' + m1,
       })
       .save$()
-    var foo1o = await seneca.entity('test/foo').load$(foo1.id)
+    let foo1o = await seneca.entity('test/foo').load$(foo1.id)
     foo1o.s1 = null
     foo1o.s2 = undefined
-    var foo1o2 = await foo1o.save$()
+    let foo1o2 = await foo1o.save$()
 
     log && log('S10100', foo1, foo1o, foo1o2)
     expect(foo1o2.data$(false)).equal({
@@ -868,9 +908,9 @@ const testrun = {
     })
 
     // S10200: new item, edge cases: empty string, Date
-    var m2 = (Math.random() + '').substring(2)
-    var d1 = new Date()
-    var foo2 = await seneca
+    let m2 = (Math.random() + '').substring(2)
+    let d1 = new Date()
+    let foo2 = await seneca
       .entity('test/foo')
       .make$({
         m: m2,
@@ -889,9 +929,9 @@ const testrun = {
     expect(foo2.fields$()).equals(['id', 'm', 'd1', 's1'])
 
     // S10205: existing item, edge cases: empty string, Date
-    var d1a = new Date()
+    let d1a = new Date()
     foo2.d1 = d1a
-    var foo2o = await foo2.save$()
+    let foo2o = await foo2.save$()
 
     log && log('S10205', foo2)
     expect(foo2o.data$(false)).includes({
