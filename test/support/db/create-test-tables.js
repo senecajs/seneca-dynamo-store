@@ -377,6 +377,10 @@ const schema = [
         AttributeName: "t_c",
         AttributeType: "N"
       },
+      {
+        AttributeName: "when",
+        AttributeType: "N"
+      },
     ],
     BillingMode: "PAY_PER_REQUEST",
     
@@ -393,6 +397,22 @@ const schema = [
           },
           {
             AttributeName: "t_c",
+            KeyType: "RANGE"
+          }
+        ],
+      },
+      {
+        IndexName: "kind-when-index",
+        Projection: {
+          ProjectionType: "ALL"
+        },
+        KeySchema: [
+          {
+            AttributeName: "kind",
+            KeyType: "HASH"
+          },
+          {
+            AttributeName: "when",
             KeyType: "RANGE"
           }
         ],

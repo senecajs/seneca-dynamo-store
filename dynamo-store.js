@@ -740,7 +740,14 @@ function make_intern() {
         for (let indexdef of indexlist) {
           let indexdefkey = indexdef.key || {}
           let pk = indexdefkey.partition
-          if (null != pk && null != fq[pk]) {
+          let indexsort = null != q.sort$ && Object.keys(q.sort$)[0]
+          
+          indexsort = indexdefkey.sort === indexsort
+          indexsort = fq[indexdefkey.sort] != null || indexdefkey.sort == null || indexsort
+          
+          // console.log(pk, indexdefkey.sort, fq, q, indexsort)
+          
+          if (null != pk && null != fq[pk] && indexsort) {
             listop = 'query'
             listreq.IndexName = indexdef.name
             let fq_pk = intern.build_cmps(fq[pk], pk, 'sort')

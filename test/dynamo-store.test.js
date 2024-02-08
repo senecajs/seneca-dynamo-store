@@ -317,7 +317,7 @@ lab.describe('comparison-query', () => {
     list = await si.entity('query02').list$(qop)
     // console.log('LIST: ', list)
     expect(list.map((ent) => ent.is2)).equal([0, 0, 0, 1])
-
+    
     qop = { d: { eq$: 10 } }
     list = await si.entity('query02').list$(qop)
     // console.log('LIST: ', list)
@@ -418,6 +418,13 @@ lab.describe('simple-sort', () => {
                 sort: 't_c',
               },
             },
+            {
+              name: 'kind-when-index',
+              key: {
+                partition: 'kind',
+                sort: 'when',
+              },
+            },
           ],
         },
       },
@@ -444,15 +451,15 @@ lab.describe('simple-sort', () => {
   lab.test('generate items', async () => {
     // generate items for cmpops test
     list = [
-      { id$: 'q3', kind: '1', t_c: 10 },
-      { id$: 'q0', kind: '1', t_c: 12 },
-      { id$: 'q1', kind: '1', t_c: 11 },
-      { id$: 'q2', kind: '1', t_c: 13 },
-      { id$: 'q4', kind: '1', t_c: 16 },
-      { id$: 'q5', kind: '1', t_c: 15 },
-      { id$: 'q7', kind: '1', t_c: 14 },
-      { id$: 'q6', kind: '1', t_c: 18 },
-      { id$: 'q8', kind: '1', t_c: 17 },
+      { id$: 'q3', kind: '1', t_c: 10, when: 1 },
+      { id$: 'q0', kind: '1', t_c: 12, when: 3 },
+      { id$: 'q1', kind: '1', t_c: 11, when: 5 },
+      { id$: 'q2', kind: '1', t_c: 13, when: 7 },
+      { id$: 'q4', kind: '1', t_c: 16, when: 6 },
+      { id$: 'q5', kind: '1', t_c: 15, when: 4 },
+      { id$: 'q7', kind: '1', t_c: 14, when: 2 },
+      { id$: 'q6', kind: '1', t_c: 18, when: 8 },
+      { id$: 'q8', kind: '1', t_c: 17, when: 0 },
     ]
     for(let item of list) {
       await si.entity('query03')
@@ -462,7 +469,7 @@ lab.describe('simple-sort', () => {
     list = await si.entity('query03').list$()
     
     expect(list.map((ent) => ent.t_c).sort())
-      .equal(Array(9).fill(0).map((v, i)=>i+10))
+      .equal(Array(9).fill(0).map((v, i) => i+10))
       
     
     // special case: see query04
@@ -475,13 +482,23 @@ lab.describe('simple-sort', () => {
   
     list = await si.entity('query03').list$({ kind: '1', sort$: { t_c: 1 } })
     expect(list.map((ent) => ent.t_c))
-      .equal(Array(9).fill(0).map((v, i)=>i+10))
+      .equal(Array(9).fill(0).map((v, i) => i+10))
     
     list = await si.entity('query03').list$({ kind: '1', sort$: { t_c: -1 } })
     expect(list.map((ent) => ent.t_c))
-      .equal(Array(9).fill(0).map((v, i)=>18-i))
+      .equal(Array(9).fill(0).map((v, i) => 18-i))
+    
+    list = await si.entity('query03').list$({ kind: '1', sort$: { when: -1 } })
+    
+    
+    expect(list.map((ent) => ent.when))
+      .equal(Array(9).fill(0).map((v, i) => 8-i))
       
-    // console.log(list)
+    list = await si.entity('query03').list$({ kind: '1', sort$: { when: 1 } })
+    
+    
+    expect(list.map((ent) => ent.when))
+      .equal(Array(9).fill(0).map((v, i) => i))
   })
 
 })
