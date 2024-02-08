@@ -225,21 +225,21 @@ const schema = [
   },
 
   {
-    "TableName": "query01",
-    "KeySchema": [
+    TableName: "query01",
+    KeySchema: [
       {
-        "KeyType": "HASH",
-        "AttributeName": "id"
+        KeyType: "HASH",
+        AttributeName: "id"
       },
       {
-        "KeyType": "RANGE",
-        "AttributeName": "sk0"
+        KeyType: "RANGE",
+        AttributeName: "sk0"
       }
     ],
-    "AttributeDefinitions": [
+    AttributeDefinitions: [
       {
-        "AttributeName": "is1",
-        "AttributeType": "N"
+        AttributeName: "is1",
+        AttributeType: "N"
       },
       {
         "AttributeName": "id",
@@ -355,6 +355,55 @@ const schema = [
           },
           {
             "AttributeName": "is2",
+            "KeyType": "RANGE"
+          }
+        ],
+      }
+    ]
+  },
+  
+  {
+    "TableName": "query03",
+    "KeySchema": [
+      {
+        "KeyType": "HASH",
+        "AttributeName": "id"
+      },
+      /*
+      {
+        "KeyType": "RANGE",
+        "AttributeName": "t_c"
+      }
+      */
+    ],
+    "AttributeDefinitions": [
+      {
+        "AttributeName": "id",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "kind",
+        "AttributeType": "S"
+      },
+      {
+        "AttributeName": "t_c",
+        "AttributeType": "N"
+      },
+    ],
+    "BillingMode": "PAY_PER_REQUEST",
+    "GlobalSecondaryIndexes": [
+      {
+        "IndexName": "kind-t_c-index",
+        "Projection": {
+          "ProjectionType": "ALL"
+        },
+        "KeySchema": [
+          {
+            "AttributeName": "kind",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "t_c",
             "KeyType": "RANGE"
           }
         ],

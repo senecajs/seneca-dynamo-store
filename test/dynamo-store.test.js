@@ -232,7 +232,7 @@ lab.describe('comparison-query', () => {
           name: 'query02',
           key: {
             partition: 'id',
-            sort: 'sk1',
+            // sort: 'sk1',
           },
           index: [
             {
@@ -391,6 +391,87 @@ lab.describe('comparison-query', () => {
     // console.log("LIST: ", list)
     expect(list.length).equal(7)
   
+  })
+
+})
+
+lab.describe('simple-sort', () => {
+  const plugin = {
+    entity: {
+      query03: {
+        table: {
+          name: 'query03',
+          key: {
+            partition: 'id',
+            // sort: 't_c',
+          },
+          index: [
+            {
+              name: 'kind-t_c-index',
+              key: {
+                partition: 'kind',
+                sort: 't_c',
+              },
+            },
+          ],
+        },
+      },
+    },
+  }
+
+  const si = make_seneca({ plugin })
+
+  lab.before(() => si.ready())
+  
+  let list = null
+  let qop = {}
+  
+  lab.test('clear', async () => {
+    list = await si.entity('query03').list$()
+    for (let item of list) {
+      // console.log('REMOVE', list)
+      await item.remove$({ id: item.id })
+    }
+    list = await si.entity('query03').list$()
+    expect(list.length).equal(0)
+  })
+  
+  lab.test('generate items', async () => {
+    // generate items for cmpops test
+    list = [
+      { id$: 'q3', kind: '1', t_c: 10 },
+      { id$: 'q0', kind: '1', t_c: 12 },
+      { id$: 'q1', kind: '1', t_c: 11 },
+      { id$: 'q2', kind: '1', t_c: 13 },
+      { id$: 'q4', kind: '1', t_c: 16 },
+      { id$: 'q5', kind: '1', t_c: 15 },
+      { id$: 'q7', kind: '1', t_c: 14 },
+      { id$: 'q6', kind: '1', t_c: 18 },
+      { id$: 'q8', kind: '1', t_c: 17 },
+    ]
+    for(let item of list) {
+      await si.entity('query03')
+        .data$(item)
+        .save$()
+    }
+    list = await si.entity('query03').list$()
+    
+    expect(list.map((ent) => ent.t_c).sort())
+      .equal(Array(9).fill(0).map((v, i)=>i+10))
+    
+  })
+  
+  lab.test('sort-with-index-table', async () => {
+  
+    list = await si.entity('query03').list$({ kind: '1', sort$: { t_c: 1 } })
+    expect(list.map((ent) => ent.t_c))
+      .equal(Array(9).fill(0).map((v, i)=>i+10))
+    
+    list = await si.entity('query03').list$({ kind: '1', sort$: { t_c: -1 } })
+    expect(list.map((ent) => ent.t_c))
+      .equal(Array(9).fill(0).map((v, i)=>18-i))
+      
+    // console.log(list)
   })
 
 })
