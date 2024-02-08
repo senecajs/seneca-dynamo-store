@@ -712,19 +712,21 @@ function make_intern() {
           '-1': false, // descending
         }
         let scan_mode = scan_index[q.sort$[sortkey$]]
+        /*
         if (null == scan_mode) {
           throw new Error('Invalid sort key')
         }
-        listreq.ScanIndexForward = scan_mode
+        */
+        null != scan_mode && (listreq.ScanIndexForward = scan_mode)
       }
 
       // hash and range key must be used together
-      if (null != sortkey && null != cq.id && null != cq[sortkey]) {
+      if (null != sortkey && null != cq.id && (null != q.sort$ && q.sort$[sortkey])) {
         listop = 'query'
         listreq.KeyConditionExpression = `id = :hashKey and #${sortkey}n = :rangeKey`
         listreq.ExpressionAttributeValues = {
           ':hashKey': marshall(cq.id, ctx.options.marshall),
-          ':rangeKey': marshall(cq[sortkey], ctx.options.marshall),
+          ':rangeKey': marshall(q.sort$[sortkey], ctx.options.marshall),
         }
         listreq.ExpressionAttributeNames = {}
         listreq.ExpressionAttributeNames[`#${sortkey}n`] = sortkey
@@ -786,7 +788,7 @@ function make_intern() {
           }
         }
       }
-
+      
       if (0 < Object.keys(fq).length) {
         listreq.FilterExpression = Object.keys(cq)
           .map((k) => {

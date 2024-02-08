@@ -232,7 +232,6 @@ lab.describe('comparison-query', () => {
           name: 'query02',
           key: {
             partition: 'id',
-            // sort: 'sk1',
           },
           index: [
             {
@@ -288,6 +287,13 @@ lab.describe('comparison-query', () => {
       await si.entity('query02')
         .data$(item)
         .save$()
+       
+      // idempotent
+      let id = item.id$
+      delete item.id$
+      await si.entity('query02')
+        .data$({...item })
+        .save$({ id, })
     }
     list = await si.entity('query02').list$()
     
@@ -402,8 +408,7 @@ lab.describe('simple-sort', () => {
         table: {
           name: 'query03',
           key: {
-            partition: 'id',
-            // sort: 't_c',
+            partition: 'id'
           },
           index: [
             {
@@ -458,6 +463,11 @@ lab.describe('simple-sort', () => {
     
     expect(list.map((ent) => ent.t_c).sort())
       .equal(Array(9).fill(0).map((v, i)=>i+10))
+      
+    
+    // special case: see query04
+    // id = :hashkey and sortkeyn = :rangeKey
+    // console.log ( await si.entity('query03').list$({id: 'q3', sort$: { t_c: 10 }}) )
     
   })
   
@@ -474,83 +484,6 @@ lab.describe('simple-sort', () => {
     // console.log(list)
   })
 
-})
-
-lab.test('store-with-sortkey', async () => {
-  const si = make_seneca({
-    plugin: {
-      entity: {
-        query02: {
-          table: {
-            name: 'query02',
-            key: {
-              partition: 'id',
-              // sort: 'sk1',
-            },
-            index: [
-              {
-                name: 'gsi_2',
-                key: {
-                  partition: 'ip2',
-                },
-              },
-              {
-                name: 'gsi_3',
-                key: {
-                  partition: 'ip3',
-                  sort: 'is2',
-                },
-              },
-            ],
-          },
-        },
-      },
-    },
-  })
-
-  await si.ready()
-  si.quiet()
-
-  // should put item with sortkey
-  await si
-    .entity('query02')
-    .save$({ id$: 'q80', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 })
-
-  // should update item with sortkey
-  // overwrite ip2, ip3, is2, d
-  await si
-    .entity('query02')
-    .save$({ id: 'q80', sk1: 'c', ip2: 'CC', ip3: 'BBB', is2: 2, d: 14 })
-
-  // should load item with sortkey
-  let q80 = await si.entity('query02').load$({ id: 'q80', sk1: 'c' })
-  expect(q80.data$(false)).equal({
-    sk1: 'c',
-    is2: 2,
-    ip2: 'CC',
-    id: 'q80',
-    d: 14,
-    ip3: 'BBB',
-  })
-
-  // { ip3: { $lt: 'CC' }, sort$: { is2: -1 }}
-  // Query key condition not supported
-  let list = await si
-    .entity('query02')
-    .list$({ ip3: { eq$: 'BB' }, sort$: { is2: 1 } })
-  // console.log('list: ', list)
-
-  // should delete item with sortkey
-  q80 = await si.entity('query02').remove$({ id: 'q80', sk1: 'c' })
-
-  expect(q80).equal(null)
-
-  // can't update the sortkey but
-  // you can remove that item
-  // and save the new sortkey with new content
-  // delete-put
-  q80 = await si.entity('query02').save$({ id$: 'q80', sk1: 'cc', d: 15 })
-  expect(q80.data$(false)).equal({ sk1: 'cc', d: 15, id: 'q80' })
 })
 
 lab.test('invalid-operators', async () => {

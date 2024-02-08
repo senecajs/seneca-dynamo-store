@@ -242,49 +242,49 @@ const schema = [
         AttributeType: "N"
       },
       {
-        "AttributeName": "id",
-        "AttributeType": "S"
+        AttributeName: "id",
+        AttributeType: "S"
       },
       {
-        "AttributeName": "sk0",
-        "AttributeType": "S"
+        AttributeName: "sk0",
+        AttributeType: "S"
       },
       {
-        "AttributeName": "ip0",
-        "AttributeType": "S"
+        AttributeName: "ip0",
+        AttributeType: "S"
       },
       {
-        "AttributeName": "ip1",
-        "AttributeType": "S"
+        AttributeName: "ip1",
+        AttributeType: "S"
       }
     ],
-    "BillingMode": "PAY_PER_REQUEST",
-    "GlobalSecondaryIndexes": [
+    BillingMode: "PAY_PER_REQUEST",
+    GlobalSecondaryIndexes: [
       {
-        "IndexName": "gsi_0",
-        "Projection": {
-          "ProjectionType": "ALL"
+        IndexName: "gsi_0",
+        Projection: {
+          ProjectionType: "ALL"
         },
-        "KeySchema": [
+        KeySchema: [
           {
-            "AttributeName": "ip0",
-            "KeyType": "HASH"
+            AttributeName: "ip0",
+            KeyType: "HASH"
           },
         ],
       },
       {
-        "IndexName": "gsi_1",
-        "Projection": {
-          "ProjectionType": "ALL"
+        IndexName: "gsi_1",
+        Projection: {
+          ProjectionType: "ALL"
         },
-        "KeySchema": [
+        KeySchema: [
           {
-            "AttributeName": "ip1",
-            "KeyType": "HASH"
+            AttributeName: "ip1",
+            KeyType: "HASH"
           },
           {
-            "AttributeName": "is1",
-            "KeyType": "RANGE"
+            AttributeName: "is1",
+            KeyType: "RANGE"
           }
         ],
       }
@@ -292,70 +292,64 @@ const schema = [
   },
   
   {
-    "TableName": "query02",
-    "KeySchema": [
+    TableName: "query02",
+    KeySchema: [
       {
-        "KeyType": "HASH",
-        "AttributeName": "id"
+        KeyType: "HASH",
+        AttributeName: "id"
+      },
+    ],
+    AttributeDefinitions: [
+      {
+        AttributeName: "is2",
+        AttributeType: "N"
+      },
+      {
+        AttributeName: "id",
+        AttributeType: "S"
       },
       /*
       {
-        "KeyType": "RANGE",
-        "AttributeName": "sk1"
-      }
-      */
-    ],
-    "AttributeDefinitions": [
-      {
-        "AttributeName": "is2",
-        "AttributeType": "N"
-      },
-      {
-        "AttributeName": "id",
-        "AttributeType": "S"
-      },
-      /*
-      {
-        "AttributeName": "sk1",
-        "AttributeType": "S"
+        AttributeName: "sk1",
+        AttributeType: "S"
       },
       */
       {
-        "AttributeName": "ip2",
-        "AttributeType": "S"
+        AttributeName: "ip2",
+        AttributeType: "S"
       },
       {
-        "AttributeName": "ip3",
-        "AttributeType": "S"
+        AttributeName: "ip3",
+        AttributeType: "S"
       }
     ],
-    "BillingMode": "PAY_PER_REQUEST",
-    "GlobalSecondaryIndexes": [
+    BillingMode: "PAY_PER_REQUEST",
+    GlobalSecondaryIndexes: [
       {
-        "IndexName": "gsi_2",
-        "Projection": {
-          "ProjectionType": "ALL"
+        IndexName: "gsi_2",
+        Projection: {
+          ProjectionType: "ALL"
         },
-        "KeySchema": [
+        KeySchema: [
           {
-            "AttributeName": "ip2",
-            "KeyType": "HASH"
+            AttributeName: "ip2",
+            KeyType: "HASH"
           },
         ],
       },
       {
-        "IndexName": "gsi_3",
-        "Projection": {
-          "ProjectionType": "ALL"
+        IndexName: "gsi_3",
+        Projection: {
+          ProjectionType: "ALL"
         },
-        "KeySchema": [
+        KeySchema: [
           {
-            "AttributeName": "ip3",
-            "KeyType": "HASH"
+            AttributeName: "ip3",
+            KeyType: "HASH"
           },
           {
-            "AttributeName": "is2",
-            "KeyType": "RANGE"
+            AttributeName: "is2",
+            KeyType: "RANGE"
           }
         ],
       }
@@ -363,52 +357,93 @@ const schema = [
   },
   
   {
-    "TableName": "query03",
-    "KeySchema": [
+    TableName: "query03",
+    KeySchema: [
       {
-        "KeyType": "HASH",
-        "AttributeName": "id"
-      },
-      /*
-      {
-        "KeyType": "RANGE",
-        "AttributeName": "t_c"
-      }
-      */
-    ],
-    "AttributeDefinitions": [
-      {
-        "AttributeName": "id",
-        "AttributeType": "S"
-      },
-      {
-        "AttributeName": "kind",
-        "AttributeType": "S"
-      },
-      {
-        "AttributeName": "t_c",
-        "AttributeType": "N"
+        KeyType: "HASH",
+        AttributeName: "id"
       },
     ],
-    "BillingMode": "PAY_PER_REQUEST",
-    "GlobalSecondaryIndexes": [
+    AttributeDefinitions: [
       {
-        "IndexName": "kind-t_c-index",
-        "Projection": {
-          "ProjectionType": "ALL"
+        AttributeName: "id",
+        AttributeType: "S"
+      },
+      {
+        AttributeName: "kind",
+        AttributeType: "S"
+      },
+      {
+        AttributeName: "t_c",
+        AttributeType: "N"
+      },
+    ],
+    BillingMode: "PAY_PER_REQUEST",
+    
+    GlobalSecondaryIndexes: [
+      {
+        IndexName: "kind-t_c-index",
+        Projection: {
+          ProjectionType: "ALL"
         },
-        "KeySchema": [
+        KeySchema: [
           {
-            "AttributeName": "kind",
-            "KeyType": "HASH"
+            AttributeName: "kind",
+            KeyType: "HASH"
           },
           {
-            "AttributeName": "t_c",
-            "KeyType": "RANGE"
+            AttributeName: "t_c",
+            KeyType: "RANGE"
           }
         ],
       }
-    ]
+    ],
+    
+  },
+  
+  {
+    TableName: "query04",
+    KeySchema: [
+      {
+        KeyType: "HASH",
+        AttributeName: "id"
+      },
+      {
+        KeyType: "RANGE",
+        AttributeName: "t_c"
+      }
+    ],
+    AttributeDefinitions: [
+      {
+        AttributeName: "id",
+        AttributeType: "S"
+      },
+      {
+        AttributeName: "kind",
+        AttributeType: "S"
+      },
+      {
+        AttributeName: "t_c",
+        AttributeType: "N"
+      },
+    ],
+    BillingMode: "PAY_PER_REQUEST",
+    
+    GlobalSecondaryIndexes: [
+      {
+        IndexName: "kind-t_c-index",
+        Projection: {
+          ProjectionType: "ALL"
+        },
+        KeySchema: [
+          {
+            AttributeName: "kind",
+            KeyType: "HASH"
+          },
+        ],
+      }
+    ],
+    
   }, 
 ]
 
