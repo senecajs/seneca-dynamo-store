@@ -674,7 +674,7 @@ function make_intern() {
           cmp.v = qv[k]
           cmp.c = k
           cmps.push(cmp)
-        } else if (k.endsWith('$')) {
+        } else {
           throw new Error('Invalid Comparison Operator: ' + k)
         }
       }

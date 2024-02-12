@@ -503,53 +503,60 @@ lab.describe('simple-sort', () => {
 
 })
 
-lab.test('invalid-operators', async () => {
-  const si = make_seneca({
-    plugin: {
-      entity: {
-        query01: {
-          table: {
-            name: 'query01',
-            key: {
-              partition: 'id',
-              sort: 'sk0',
-            },
-            index: [
-              {
-                name: 'gsi_0',
-                key: {
-                  partition: 'ip0',
-                },
-              },
-              {
-                name: 'gsi_1',
-                key: {
-                  partition: 'ip1',
-                  sort: 'is1',
-                },
-              },
-            ],
+
+lab.describe('invalid-operators', () => {
+  const plugin = {
+    entity: {
+      query01: {
+        table: {
+          name: 'query01',
+          key: {
+            partition: 'id',
+            sort: 'sk0',
           },
+          index: [
+            {
+              name: 'gsi_0',
+              key: {
+                partition: 'ip0',
+              },
+            },
+            {
+              name: 'gsi_1',
+              key: {
+                partition: 'ip1',
+                sort: 'is1',
+              },
+            },
+          ],
         },
       },
     },
+  }
+
+  const si = make_seneca({ plugin })
+
+  lab.before(() => (si.ready(), si.quiet()) )
+  
+  lab.test('invalid-queries-operators', async () => {
+    
+    let invalid_query = [
+      { d: { notAValidOp: 123 } },
+      { d: { notAValidOp$: 123 } }
+    ]
+    
+    for(let query of invalid_query) {
+      let err = null
+      try {
+        await si.entity('query01').list$(query)
+      } catch (e) {
+        err = e
+      }
+      expect(err).not.equal(null)
+    }
+    
   })
 
-  await si.ready()
-  si.quiet()
-
-  let list = []
-  let qop = {}
-  let err
-
-  err = null
-  qop = { d: { notAValidOp$: 123 } }
-  try {
-    list = await si.entity('query01').list$(qop)
-  } catch (e) {
-    err = e
-  }
-  expect(err).not.equal(null)
 })
 
 lab.test('injection-fails', async () => {
