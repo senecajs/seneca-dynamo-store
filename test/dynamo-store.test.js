@@ -542,7 +542,7 @@ lab.describe('invalid-operators', () => {
     
     let invalid_query = [
       { d: { notAValidOp: 123 } },
-      { d: { notAValidOp$: 123 } }
+      { d: { notAValidOp$: 123 } },
     ]
     
     for(let query of invalid_query) {
