@@ -815,7 +815,7 @@ function make_intern() {
                   let cq_v = intern.build_cmps(v, k)
                   return cq_v.cmps
                     .map(
-                      (c, j) => '#' + c.k + ` ${c.cmpop} :` + c.k + i + j + 'n',
+                      (c, j) => `#${c.k} ${c.cmpop} :${''+ c.k + i + j}n`
                     )
                     .join(' and ')
                 })
@@ -837,7 +837,7 @@ function make_intern() {
             let cq_v = intern.build_cmps(v, k)
             cq_v.cmps.forEach(
               (c, j) =>
-                (a[':' + c.k + i + j + 'n'] = marshall(
+                (a[`:${''+ c.k + i + j}n`] = marshall(
                   c.v,
                   ctx.options.marshall,
                 )),
