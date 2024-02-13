@@ -739,6 +739,8 @@ function make_intern() {
         let indexlist = ti.index || []
         for (let indexdef of indexlist) {
           let indexdefkey = indexdef.key || {}
+          // pk - partition key
+          // sk - sort key
           let pk = indexdefkey.partition
           let indexsort = null != q.sort$ && Object.keys(q.sort$)[0]
           
@@ -748,6 +750,9 @@ function make_intern() {
           // console.log(pk, indexdefkey.sort, fq, q, indexsort)
           
           if (null != pk && null != fq[pk] && indexsort) {
+            let attr_pfix = 'pk' // attribute postfix
+            let attr_name = '' + pk + attr_pfix
+            
             listop = 'query'
             listreq.IndexName = indexdef.name
             let fq_pk = intern.build_cmps(fq[pk], pk, 'sort')
@@ -755,39 +760,42 @@ function make_intern() {
             // Query key condition not supported
             // other than '='
             listreq.KeyConditionExpression = fq_pk.cmps
-              .map((c, i) => `#${c.k}nn ${c.cmpop} :${c.k + i}ii`)
+              .map((c, i) => `#${c.k}${attr_pfix} ${c.cmpop} :${c.k + i}${attr_pfix}`)
               .join(' and ')
 
             listreq.ExpressionAttributeValues = {}
             fq_pk.cmps.forEach((c, i) => {
-              listreq.ExpressionAttributeValues[`:${c.k + i}ii`] = marshall(
+              listreq.ExpressionAttributeValues[`:${c.k + i}${attr_pfix}`] = marshall(
                 c.v,
                 ctx.options.marshall,
               )
             })
 
             listreq.ExpressionAttributeNames = {}
-            listreq.ExpressionAttributeNames[`#${pk}nn`] = pk
-
+            listreq.ExpressionAttributeNames[`#${attr_name}`] = pk
+            
             delete fq[pk]
 
             let sk = indexdefkey.sort
             if (null != sk && null != fq[sk]) {
+              let attr_pfix = 'sk' // attribute postfix
+              let attr_name = '' + sk + attr_pfix
+              
               let fq_op = intern.build_cmps(fq[sk], sk, 'sort')
 
               listreq.KeyConditionExpression +=
                 ' and ' +
                 fq_op.cmps
-                  .map((c, i) => `#${c.k}n ${c.cmpop} :${c.k + i}i`)
+                  .map((c, i) => `#${c.k}${attr_pfix} ${c.cmpop} :${c.k + i}${attr_pfix}`)
                   .join(' and ')
 
               fq_op.cmps.forEach((c, i) => {
-                listreq.ExpressionAttributeValues[`:${c.k + i}i`] = marshall(
+                listreq.ExpressionAttributeValues[`:${c.k + i}${attr_pfix}`] = marshall(
                   c.v,
                   ctx.options.marshall,
                 )
               })
-              listreq.ExpressionAttributeNames[`#${sk}n`] = sk
+              listreq.ExpressionAttributeNames[`#${attr_name}`] = sk
               delete fq[sk]
             }
 
