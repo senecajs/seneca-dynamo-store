@@ -41,7 +41,8 @@
     "lib"
   ],
   "contributors": [
-    "https://github.com/lilsweetcaligula"
+    "https://github.com/lilsweetcaligula",
+    "Aleksandar Milenkovic - https://github.com/BeAllAround"
   ],
   "engines": {
     "node": ">=16"
