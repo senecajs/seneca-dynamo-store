@@ -807,7 +807,7 @@ function make_intern() {
       if (0 < Object.keys(fq).length) {
         listreq.FilterExpression = Object.keys(cq)
           .map((k) => {
-            let cq_k = isarr(cq[k]) ? cq[k] : [cq[k]]
+            let cq_k = isarr(cq[k]) ? cq[k] : [ cq[k] ]
             return (
               '(' +
               cq_k
@@ -831,7 +831,7 @@ function make_intern() {
         )
 
         listreq.ExpressionAttributeValues = Object.keys(cq).reduce((a, k) => {
-          let cq_k = isarr(cq[k]) ? cq[k] : [cq[k]]
+          let cq_k = isarr(cq[k]) ? cq[k] : [ cq[k] ]
 
           cq_k.forEach((v, i) => {
             let cq_v = intern.build_cmps(v, k)
