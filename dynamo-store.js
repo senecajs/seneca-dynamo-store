@@ -721,7 +721,12 @@ function make_intern() {
       }
 
       // hash and range key must be used together
-      if (null != sortkey && null != cq.id && (null != q.sort$ && q.sort$[sortkey])) {
+      if (
+        null != sortkey &&
+        null != cq.id &&
+        null != q.sort$ &&
+        q.sort$[sortkey]
+      ) {
         listop = 'query'
         listreq.KeyConditionExpression = `id = :hashKey and #${sortkey}n = :rangeKey`
         listreq.ExpressionAttributeValues = {
@@ -743,16 +748,19 @@ function make_intern() {
           // sk - sort key
           let pk = indexdefkey.partition
           let indexsort = null != q.sort$ && Object.keys(q.sort$)[0]
-          
+
           indexsort = indexdefkey.sort === indexsort
-          indexsort = fq[indexdefkey.sort] != null || indexdefkey.sort == null || indexsort
-          
+          indexsort =
+            fq[indexdefkey.sort] != null ||
+            indexdefkey.sort == null ||
+            indexsort
+
           // console.log(pk, indexdefkey.sort, fq, q, indexsort)
-          
+
           if (null != pk && null != fq[pk] && indexsort) {
             let attr_pfix = 'pk' // attribute postfix
             let attr_name = '' + pk + attr_pfix
-            
+
             listop = 'query'
             listreq.IndexName = indexdef.name
             let fq_pk = intern.build_cmps(fq[pk], pk, 'sort')
@@ -760,40 +768,42 @@ function make_intern() {
             // Query key condition not supported
             // other than '='
             listreq.KeyConditionExpression = fq_pk.cmps
-              .map((c, i) => `#${c.k}${attr_pfix} ${c.cmpop} :${c.k + i}${attr_pfix}`)
+              .map(
+                (c, i) =>
+                  `#${c.k}${attr_pfix} ${c.cmpop} :${c.k + i}${attr_pfix}`,
+              )
               .join(' and ')
 
             listreq.ExpressionAttributeValues = {}
             fq_pk.cmps.forEach((c, i) => {
-              listreq.ExpressionAttributeValues[`:${c.k + i}${attr_pfix}`] = marshall(
-                c.v,
-                ctx.options.marshall,
-              )
+              listreq.ExpressionAttributeValues[`:${c.k + i}${attr_pfix}`] =
+                marshall(c.v, ctx.options.marshall)
             })
 
             listreq.ExpressionAttributeNames = {}
             listreq.ExpressionAttributeNames[`#${attr_name}`] = pk
-            
+
             delete fq[pk]
 
             let sk = indexdefkey.sort
             if (null != sk && null != fq[sk]) {
               let attr_pfix = 'sk' // attribute postfix
               let attr_name = '' + sk + attr_pfix
-              
+
               let fq_op = intern.build_cmps(fq[sk], sk, 'sort')
 
               listreq.KeyConditionExpression +=
                 ' and ' +
                 fq_op.cmps
-                  .map((c, i) => `#${c.k}${attr_pfix} ${c.cmpop} :${c.k + i}${attr_pfix}`)
+                  .map(
+                    (c, i) =>
+                      `#${c.k}${attr_pfix} ${c.cmpop} :${c.k + i}${attr_pfix}`,
+                  )
                   .join(' and ')
 
               fq_op.cmps.forEach((c, i) => {
-                listreq.ExpressionAttributeValues[`:${c.k + i}${attr_pfix}`] = marshall(
-                  c.v,
-                  ctx.options.marshall,
-                )
+                listreq.ExpressionAttributeValues[`:${c.k + i}${attr_pfix}`] =
+                  marshall(c.v, ctx.options.marshall)
               })
               listreq.ExpressionAttributeNames[`#${attr_name}`] = sk
               delete fq[sk]
@@ -803,20 +813,18 @@ function make_intern() {
           }
         }
       }
-      
+
       if (0 < Object.keys(fq).length) {
         listreq.FilterExpression = Object.keys(cq)
           .map((k) => {
-            let cq_k = isarr(cq[k]) ? cq[k] : [ cq[k] ]
+            let cq_k = isarr(cq[k]) ? cq[k] : [cq[k]]
             return (
               '(' +
               cq_k
                 .map((v, i) => {
                   let cq_v = intern.build_cmps(v, k)
                   return cq_v.cmps
-                    .map(
-                      (c, j) => `#${c.k} ${c.cmpop} :${''+ c.k + i + j}n`
-                    )
+                    .map((c, j) => `#${c.k} ${c.cmpop} :${'' + c.k + i + j}n`)
                     .join(' and ')
                 })
                 .join(' or ') +
@@ -831,13 +839,13 @@ function make_intern() {
         )
 
         listreq.ExpressionAttributeValues = Object.keys(cq).reduce((a, k) => {
-          let cq_k = isarr(cq[k]) ? cq[k] : [ cq[k] ]
+          let cq_k = isarr(cq[k]) ? cq[k] : [cq[k]]
 
           cq_k.forEach((v, i) => {
             let cq_v = intern.build_cmps(v, k)
             cq_v.cmps.forEach(
               (c, j) =>
-                (a[`:${''+ c.k + i + j}n`] = marshall(
+                (a[`:${'' + c.k + i + j}n`] = marshall(
                   c.v,
                   ctx.options.marshall,
                 )),
@@ -907,7 +915,6 @@ function make_intern() {
       page()
     },
 
-    
     inbound: function (ctx, ent, data) {
       if (null == data) return null
       let entity_options = intern.entity_options(ent, ctx)
@@ -923,7 +930,7 @@ function make_intern() {
         }
 
         // Dynamo SDK fails if value is a function
-        else if('function' === typeof data[fn]) {
+        else if ('function' === typeof data[fn]) {
           delete data[fn]
         }
       })
@@ -931,7 +938,6 @@ function make_intern() {
       return data
     },
 
-    
     outbound: function (ctx, ent, data) {
       if (null == data) return null
       let entity_options = intern.entity_options(ent, ctx)

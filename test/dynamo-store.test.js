@@ -119,9 +119,9 @@ lab.describe('special-query', () => {
   const si = make_seneca({ plugin })
 
   lab.before(() => si.ready())
-  
+
   let list = null
-  
+
   lab.test('clear', async () => {
     list = await si.entity('query01').list$()
     for (let item of list) {
@@ -139,16 +139,13 @@ lab.describe('special-query', () => {
       { id$: 'q2', sk0: 'b', ip0: 'B', ip1: 'AA', is1: 0, d: 10 },
       { id$: 'q3', sk0: 'c', ip0: 'C', ip1: 'AA', is1: 1, d: 10 },
       { id$: 'q4', sk0: 'c', ip0: 'C', ip1: 'AA', is1: 2, d: 10 },
-      { id$: 'q5', sk0: 'c', ip0: 'C', ip1: 'BB', is1: 0, d: 10 }
+      { id$: 'q5', sk0: 'c', ip0: 'C', ip1: 'BB', is1: 0, d: 10 },
     ]
-  
-    for(let item of list) {
-      await si
-        .entity('query01')
-        .data$(item)
-        .save$()
+
+    for (let item of list) {
+      await si.entity('query01').data$(item).save$()
     }
-    
+
     list = await si.entity('query01').list$()
     // console.log('ALL', list)
     expect(list.map((ent) => ent.id).sort()).equal([
@@ -158,12 +155,10 @@ lab.describe('special-query', () => {
       'q3',
       'q4',
       'q5',
-    ]) 
-  
+    ])
   })
-  
+
   lab.test('query', async () => {
-  
     let q = { id: 'q0', sk0: 'a' }
     list = await si.entity('query01').list$(q)
     // console.log('Q', q, list)
@@ -197,12 +192,24 @@ lab.describe('special-query', () => {
     q = { ip1: 'AA' }
     list = await si.entity('query01').list$(q)
     // console.log('Q', q, list)
-    expect(list.map((ent) => ent.id).sort()).equal(['q0', 'q1', 'q2', 'q3', 'q4'])
+    expect(list.map((ent) => ent.id).sort()).equal([
+      'q0',
+      'q1',
+      'q2',
+      'q3',
+      'q4',
+    ])
 
     q = { ip1: 'AA', d: 10 }
     list = await si.entity('query01').list$(q)
     // console.log('Q', q, list)
-    expect(list.map((ent) => ent.id).sort()).equal(['q0', 'q1', 'q2', 'q3', 'q4'])
+    expect(list.map((ent) => ent.id).sort()).equal([
+      'q0',
+      'q1',
+      'q2',
+      'q3',
+      'q4',
+    ])
 
     q = { ip1: 'AA', is1: 0 }
     list = await si.entity('query01').list$(q)
@@ -213,15 +220,13 @@ lab.describe('special-query', () => {
     list = await si.entity('query01').list$(q)
     // console.log('Q', q, list)
     expect(list.map((ent) => ent.id).sort()).equal(['q0', 'q1', 'q2'])
-  
   })
-  
+
   lab.test('entity id exists', async () => {
     let foo0 = await si.entity('foo')
     await foo0.save$({ d: 12 })
     expect(foo0.id, 'entity id exists').exists()
   })
-  
 })
 
 lab.describe('comparison-query', () => {
@@ -256,10 +261,10 @@ lab.describe('comparison-query', () => {
   const si = make_seneca({ plugin })
 
   lab.before(() => si.ready())
-  
+
   let list = null
   let qop = {}
-  
+
   lab.test('clear', async () => {
     list = await si.entity('query02').list$()
     for (let item of list) {
@@ -269,7 +274,7 @@ lab.describe('comparison-query', () => {
     list = await si.entity('query02').list$()
     expect(list.length).equal(0)
   })
-  
+
   lab.test('generate items', async () => {
     // generate items for cmpops test
     list = [
@@ -283,20 +288,19 @@ lab.describe('comparison-query', () => {
       { id$: 'q6', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 2, d: 11 },
       { id$: 'q8', sk1: 'c', ip2: 'C', ip3: 'BB', is2: 1, d: 13 },
     ]
-    for(let item of list) {
-      await si.entity('query02')
-        .data$(item)
-        .save$()
-       
+    for (let item of list) {
+      await si.entity('query02').data$(item).save$()
+
       // idempotent
       let id = item.id$
       delete item.id$
-      await si.entity('query02')
-        .data$({...item })
-        .save$({ id, })
+      await si
+        .entity('query02')
+        .data$({ ...item })
+        .save$({ id })
     }
     list = await si.entity('query02').list$()
-    
+
     expect(list.map((ent) => ent.id).sort()).equal([
       'q0',
       'q1',
@@ -308,16 +312,15 @@ lab.describe('comparison-query', () => {
       'q7',
       'q8',
     ])
-    
   })
-  
+
   lab.test('sort-index-key comparison', async () => {
     // sort-key comparison
     qop = { ip3: 'AA', is2: { lte$: 1 } }
     list = await si.entity('query02').list$(qop)
     // console.log('LIST: ', list)
     expect(list.map((ent) => ent.is2)).equal([0, 0, 0, 1])
-    
+
     qop = { d: { eq$: 10 } }
     list = await si.entity('query02').list$(qop)
     // console.log('LIST: ', list)
@@ -328,14 +331,14 @@ lab.describe('comparison-query', () => {
     // console.log('LIST: ', list)
     expect(list.length).equal(3)
   })
-  
+
   lab.test('ASC sort$: 1', async () => {
     // ascending
     qop = { d: { gte$: 10 }, ip3: 'BB', is2: { lte$: 3 }, sort$: { is2: 1 } }
     list = await si.entity('query02').list$(qop)
     // console.log('LIST: ', list)
     expect(list.map((ent) => ent.is2)).equal([0, 1, 2, 3])
-    
+
     // table key.sort
     qop = {
       d: { eq$: 10 },
@@ -346,14 +349,8 @@ lab.describe('comparison-query', () => {
     }
     list = await si.entity('query02').list$(qop)
     // console.log(list)
-    expect(list.map(item => item.sk1)).equal([
-      'a',
-      'a',
-      'b',
-      'c',
-      'c',
-    ])
-    
+    expect(list.map((item) => item.sk1)).equal(['a', 'a', 'b', 'c', 'c'])
+
     // table.key.sort and hashKey
     qop = {
       id: 'q0',
@@ -362,9 +359,8 @@ lab.describe('comparison-query', () => {
     list = await si.entity('query02').list$(qop)
     // console.log("LIST: ", list)
     expect(list.length).equal(1)
-  
   })
-  
+
   lab.test('DESC sort$: -1', async () => {
     // descending
     qop = { d: { gte$: 10 }, ip3: 'BB', is2: { gte$: 0 }, sort$: { is2: -1 } }
@@ -372,7 +368,7 @@ lab.describe('comparison-query', () => {
     // console.log('LIST: ', list)
     expect(list.map((ent) => ent.is2)).equal([3, 2, 1, 0])
   })
-  
+
   lab.test('more complicated tests', async () => {
     qop = { ip3: 'AA', is2: { lte$: 1, gt$: 2 } } // KeyCondition error
     qop = { ip3: 'AA', is2: { lte$: 1 } }
@@ -396,9 +392,7 @@ lab.describe('comparison-query', () => {
       .list$({ d: [{ lt$: 11, gt$: 9 }, { eq$: 11 }] })
     // console.log("LIST: ", list)
     expect(list.length).equal(7)
-  
   })
-
 })
 
 lab.describe('simple-sort', () => {
@@ -408,7 +402,7 @@ lab.describe('simple-sort', () => {
         table: {
           name: 'query03',
           key: {
-            partition: 'id'
+            partition: 'id',
           },
           index: [
             {
@@ -434,10 +428,10 @@ lab.describe('simple-sort', () => {
   const si = make_seneca({ plugin })
 
   lab.before(() => si.ready())
-  
+
   let list = null
   let qop = {}
-  
+
   lab.test('clear', async () => {
     list = await si.entity('query03').list$()
     for (let item of list) {
@@ -447,7 +441,7 @@ lab.describe('simple-sort', () => {
     list = await si.entity('query03').list$()
     expect(list.length).equal(0)
   })
-  
+
   lab.test('generate items', async () => {
     // generate items for cmpops test
     list = [
@@ -461,48 +455,54 @@ lab.describe('simple-sort', () => {
       { id$: 'q6', kind: '1', t_c: 18, when: 8 },
       { id$: 'q8', kind: '1', t_c: 17, when: 0 },
     ]
-    for(let item of list) {
-      await si.entity('query03')
-        .data$(item)
-        .save$()
+    for (let item of list) {
+      await si.entity('query03').data$(item).save$()
     }
     list = await si.entity('query03').list$()
-    
-    expect(list.map((ent) => ent.t_c).sort())
-      .equal(Array(9).fill(0).map((v, i) => i+10))
-      
-    
+
+    expect(list.map((ent) => ent.t_c).sort()).equal(
+      Array(9)
+        .fill(0)
+        .map((v, i) => i + 10),
+    )
+
     // special case: see query04
     // id = :hashkey and sortkeyn = :rangeKey
     // console.log ( await si.entity('query03').list$({id: 'q3', sort$: { t_c: 10 }}) )
-    
   })
-  
+
   lab.test('sort-with-index-table', async () => {
-  
     list = await si.entity('query03').list$({ kind: '1', sort$: { t_c: 1 } })
-    expect(list.map((ent) => ent.t_c))
-      .equal(Array(9).fill(0).map((v, i) => i+10))
-    
+    expect(list.map((ent) => ent.t_c)).equal(
+      Array(9)
+        .fill(0)
+        .map((v, i) => i + 10),
+    )
+
     list = await si.entity('query03').list$({ kind: '1', sort$: { t_c: -1 } })
-    expect(list.map((ent) => ent.t_c))
-      .equal(Array(9).fill(0).map((v, i) => 18-i))
-    
+    expect(list.map((ent) => ent.t_c)).equal(
+      Array(9)
+        .fill(0)
+        .map((v, i) => 18 - i),
+    )
+
     list = await si.entity('query03').list$({ kind: '1', sort$: { when: -1 } })
-    
-    
-    expect(list.map((ent) => ent.when))
-      .equal(Array(9).fill(0).map((v, i) => 8-i))
-      
+
+    expect(list.map((ent) => ent.when)).equal(
+      Array(9)
+        .fill(0)
+        .map((v, i) => 8 - i),
+    )
+
     list = await si.entity('query03').list$({ kind: '1', sort$: { when: 1 } })
-    
-    
-    expect(list.map((ent) => ent.when))
-      .equal(Array(9).fill(0).map((v, i) => i))
+
+    expect(list.map((ent) => ent.when)).equal(
+      Array(9)
+        .fill(0)
+        .map((v, i) => i),
+    )
   })
-
 })
-
 
 lab.describe('invalid-operators', () => {
   const plugin = {
@@ -536,16 +536,15 @@ lab.describe('invalid-operators', () => {
 
   const si = make_seneca({ plugin })
 
-  lab.before(() => (si.ready(), si.quiet()) )
-  
+  lab.before(() => (si.ready(), si.quiet()))
+
   lab.test('invalid-queries-operators', async () => {
-    
     let invalid_query = [
       { d: { notAValidOp: 123 } },
       { d: { notAValidOp$: 123 } },
     ]
-    
-    for(let query of invalid_query) {
+
+    for (let query of invalid_query) {
       let err = null
       try {
         await si.entity('query01').list$(query)
@@ -554,9 +553,7 @@ lab.describe('invalid-operators', () => {
       }
       expect(err).not.equal(null)
     }
-    
   })
-
 })
 
 lab.test('injection-fails', async () => {
@@ -661,14 +658,14 @@ lab.describe('legacy-store-test', () => {
   })
 
   lab.before(() => si_merge.ready())
-  
+
   LegacyStoreTest.test.keyvalue(lab, {
     seneca: si,
     senecaMerge: si_merge,
     script: lab,
     ent0: 'ENT0',
   })
-  
+
   LegacyStoreTest.basictest({
     seneca: si,
     senecaMerge: si_merge,
