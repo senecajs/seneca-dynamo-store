@@ -3,6 +3,8 @@
 
 // const AWS_SDK = require('@aws-sdk/client-dynamodb')
 
+const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
+
 const Code = require('@hapi/code')
 const expect = Code.expect
 
@@ -718,11 +720,19 @@ lab.test('custom-table', async () => {
   const si = make_seneca({ plugin })
   let c0 = await si
     .entity('test/custom')
-    .data$({ w: Date.now(), x: 1, y: 'a' })
+    .data$({
+      w: Date.now(),
+      x: 1,
+      y: 'a',
+      o: { a: { b: 1 } },
+      a: ['A', 'B'],
+      m: { m0: [{ m1: [{ m2: null }] }] },
+    })
     .save$()
 
   let c0o = await si.entity('test/custom').load$(c0.id)
   expect(c0o.w).equal(c0.w)
+  expect(c0o.o).equal({ a: { b: 1 } })
 
   let c0s = await si
     .entity('test/custom')
@@ -740,12 +750,36 @@ lab.test('custom-table', async () => {
   // console.log(c0)
   expect(c0oA.id).equal(c0.id)
 
+  c0oA.z = true
+  let c0oAu = await c0oA.save$()
+  // console.log('c0oAu', c0oAu)
+  // console.dir(c0oAu, {depth:null})
+  expect(c0oAu).contains({
+    x: 1,
+    y: 'a',
+    o: { a: { b: 1 } },
+    a: ['A', 'B'],
+    m: { m0: [{ m1: [{ m2: null }] }] },
+  })
+
   let cl0 = await si.entity('test/custom').list$({ x: 1, y: 'a' })
   expect(cl0.length).above(0)
 
   let cl1 = await si.entity('test/custom').list$({ x: [1], y: 'a' })
   expect(cl1.length).above(0)
 })
+
+/*
+lab.test('marshall', ()=>{
+  const D = {depth:null}
+  console.dir(marshall('a'),D)
+  console.dir(marshall({a:'a'}),D)
+  console.dir(marshall(['a']),D)
+  console.dir(marshall({b:'a'}),D)
+  console.dir(marshall({b:{a:'a'}}),D)
+  console.dir(marshall({b:['a']}),D)
+})
+*/
 
 const testrun = {
   store_core: async function (opts) {

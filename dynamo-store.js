@@ -204,6 +204,9 @@ function make_intern() {
 
           data = intern.inbound(ctx, ent, data)
 
+          // console.log('DATA AAA')
+          // console.dir(data,{depth:null})
+
           // Create new Item.
           if (!update) {
             let new_id = ent.id$
@@ -291,13 +294,16 @@ function make_intern() {
                   (o, k) => (
                     (o[k] = {
                       Action: 'PUT',
-                      Value: marshall(data[k], ctx.options.marshall),
+                      Value: intern.fixmarshall(data[k], ctx.options.marshall),
                     }),
                     o
                   ),
                   {},
                 ),
             }
+
+            // console.log('UPDATE', msg)
+            // console.dir(upreq, { depth: null })
 
             const dycmd = new UpdateItemCommand(upreq)
 
@@ -954,6 +960,13 @@ function make_intern() {
         })
       }
       return data
+    },
+
+    // Ensure top level arrays are structured correctly
+    fixmarshall(data, opts) {
+      const wrap = { D: data }
+      const unwrap = marshall(wrap, opts)
+      return unwrap.D
     },
   }
 }
