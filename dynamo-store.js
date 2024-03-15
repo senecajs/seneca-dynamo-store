@@ -190,16 +190,16 @@ function make_intern() {
 
         save: function (msg, reply) {
           const seneca = this
-          var ent = msg.ent
+          let ent = msg.ent
 
-          var update = null != ent.id
+          const update = null != ent.id
           const ti = intern.get_table(ent, ctx)
-          var data = ent.data$(false)
-          var q = msg.q || {}
+          let data = ent.data$(false)
+          const q = msg.q || {}
 
           // The merge$ directive has precedence.
           // Explicit `false` value otherwise consider merge `true`.
-          var merge =
+          const merge =
             null == q.merge$ ? false !== opts.merge : false !== q.merge$
 
           data = intern.inbound(ctx, ent, data)
@@ -907,23 +907,31 @@ function make_intern() {
       page()
     },
 
+    
     inbound: function (ctx, ent, data) {
       if (null == data) return null
       let entity_options = intern.entity_options(ent, ctx)
 
-      if (entity_options) {
-        var fields = entity_options.fields || {}
-        Object.keys(fields).forEach((fn) => {
-          var fs = fields[fn] || {}
-          var type = fs.type
-          if ('date' === type && data[fn] instanceof Date) {
-            data[fn] = data[fn].toISOString()
-          }
-        })
-      }
+      const fields = (entity_options && entity_options.fields) || {}
+
+      Object.keys(fields).forEach((fn) => {
+        const fs = fields[fn] || {}
+        const type = fs.type
+
+        if ('date' === type && data[fn] instanceof Date) {
+          data[fn] = data[fn].toISOString()
+        }
+
+        // Dynamo SDK fails if value is a function
+        else if('function' === typeof data[fn]) {
+          delete data[fn]
+        }
+      })
+
       return data
     },
 
+    
     outbound: function (ctx, ent, data) {
       if (null == data) return null
       let entity_options = intern.entity_options(ent, ctx)
