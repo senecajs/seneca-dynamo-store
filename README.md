@@ -44,10 +44,12 @@ var seneca = Seneca()
 ## Quick Example
 
 ```js
-require('seneca')()
-  .use('@seneca/dynamo-store', {
-    // AWS DynamoDB config
-  })
+const Seneca = require('seneca')
+
+var seneca = Seneca()
+  .use('promisify')
+  .use('entity')
+  .use('dynamo-store')
 ```
 
 ## More Examples
