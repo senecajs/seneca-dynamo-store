@@ -28,8 +28,6 @@ npm install aws-sdk
 
 ### Quick example
 
-
-
 ```js
 const Seneca = require('seneca')
 
@@ -40,7 +38,6 @@ var seneca = Seneca()
 ```
 
 ### Detailed Examples
-
 
 <!--START:action-list-->
 <!--END:action-list-->
