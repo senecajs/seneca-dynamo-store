@@ -6,6 +6,8 @@
 [![npm version](https://img.shields.io/npm/v/@seneca/dynamo-store.svg)](https://npmjs.com/package/@seneca/dynamo-store)
 [![build](https://github.com/senecajs/seneca-dynamo-store/actions/workflows/build.yml/badge.svg)](https://github.com/senecajs/seneca-dynamo-store/actions/workflows/build.yml)
 [![Known Vulnerabilities](https://snyk.io/test/github/senecajs/seneca-dynamo-store/badge.svg)](https://snyk.io/test/github/senecajs/seneca-dynamo-store)
+[![Coverage Status](https://coveralls.io/repos/github/senecajs/seneca-dynamo-store/badge.svg?branch=master)](https://coveralls.io/github/senecajs/seneca-dynamo-store?branch=master)
+[![Maintainability](https://api.codeclimate.com/v1/badges/404faaa89a95635ddfc0/maintainability)](https://codeclimate.com/github/senecajs/seneca-dynamo-store/maintainability)
 
 | ![Voxgig](https://www.voxgig.com/res/img/vgt01r.png) | This open source module is sponsored and supported by [Voxgig](https://www.voxgig.com). |
 |---|---|
