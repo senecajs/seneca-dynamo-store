@@ -18,7 +18,7 @@
 
 ## Install
 
-```sh
+```
 npm install seneca
 npm install seneca-promisify // dependency
 npm install seneca-entity // dependency
@@ -30,7 +30,7 @@ npm install aws-sdk
 
 
 
-```js
+```
 const Seneca = require('seneca')
 
 var seneca = Seneca()
@@ -50,7 +50,7 @@ var seneca = Seneca()
 
 ## Quick Example
 
-```js
+```
 require('seneca')()
   .use('@seneca/dynamo-store', {
     // AWS DynamoDB config
@@ -91,7 +91,7 @@ The [Senecajs org](https://github.com/senecajs/) encourages open participation. 
 
 ### Running tests
 
-```sh
+```
 npm run test
 ```
 
