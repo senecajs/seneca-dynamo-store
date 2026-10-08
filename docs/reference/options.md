@@ -6,7 +6,7 @@ options with `seneca.use('@seneca/dynamo-store', { ... })`.
 | Option | Type | Default | Effect |
 | ------ | ---- | ------- | ------ |
 | `aws` | object (open) | `{}` | Passed to `new DynamoDB(config)` of `@aws-sdk/client-dynamodb` when the plugin initialises. Top level properties that are `null` or `undefined` are removed first. Typical keys: `region`, `endpoint`, `credentials`. |
-| `merge` | boolean | `true` | Default for saving an entity that has an id. `true`: `UpdateItem` sets each given field and keeps the others. `false`: the item is written with `PutItem`. The `merge$` query directive overrides it per call. |
+| `merge` | boolean | `true` | Default for saving an entity that has an id. `true`: `UpdateItem` sets each given field and keeps the others. `false`: the item is written with `PutItem`, which currently fails for an existing id with `ConditionalCheckFailedException` ([#27](https://github.com/senecajs/seneca-dynamo-store/issues/27)). The `merge$` query directive overrides it per call. |
 | `entity` | object | `{}` | Per entity settings, keyed by canon string. See below. |
 | `marshall` | object (open) | `{ removeUndefinedValues: true, convertEmptyValues: false, convertClassInstanceToMap: true }` | Options for `marshall` of `@aws-sdk/util-dynamodb` when writing items and query values. |
 | `unmarshall` | object (open) | `{ wrapNumbers: false }` | Options for `unmarshall` when reading items. |

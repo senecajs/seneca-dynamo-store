@@ -8,7 +8,7 @@ DynamoDB request. Source: `intern.listent` in `dynamo-store.js`.
 | Query value | Meaning |
 | ----------- | ------- |
 | `{ f: v }` | `f = v` |
-| `{ f: [a, b] }` | `f = a or f = b` |
+| `{ f: [a, b] }` | `f = a or f = b`, only for fields evaluated in a scan or filter expression. If `f` is a key of a configured index the query currently fails ([#33](https://github.com/senecajs/seneca-dynamo-store/issues/33)). |
 | `{ f: { gt$: v } }` | Operators: `gt$` (`>`), `gte$` (`>=`), `lt$` (`<`), `lte$` (`<=`), `eq$` (`=`), `ne$` (`!=`). Several operators on one field are joined with `and`. |
 | non object query (string or array) | Treated as `{ id: q }`. |
 

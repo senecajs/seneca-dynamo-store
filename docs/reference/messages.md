@@ -9,7 +9,7 @@ entity API (`save$`, `load$`, `list$`, `remove$`, `native$`).
 | `role:entity,cmd:save` | `ent.save$()` | New entity: `PutItem` with `attribute_not_exists(id)`. Existing entity with merge: `UpdateItem`. Existing without merge: `PutItem` with the same condition, which currently fails with `ConditionalCheckFailedException` ([#27](https://github.com/senecajs/seneca-dynamo-store/issues/27)). Then `GetItem` to reload. | The saved entity, as read back. |
 | `role:entity,cmd:load` | `ent.load$(q)` | Query with `id`: `GetItem` (add the sort key for tables with one). Other query: list rules, first result. Empty query: no call. | Entity or `null`. |
 | `role:entity,cmd:list` | `ent.list$(q)` | `Scan` or `Query`, all pages. See [Queries](queries.md). | Array of entities. |
-| `role:entity,cmd:remove` | `ent.remove$(q)` | With `id`: `DeleteItem`. Otherwise the first match of a list, or with `all$: true` every match through one `BatchWriteItem`. | `null`, or the old entity with `load$: true`. |
+| `role:entity,cmd:remove` | `ent.remove$(q)` | With `id`: `DeleteItem`. Otherwise the first match of a list, or with `all$: true` every match through one `BatchWriteItem`. Currently only `id` is used as the key (tables with a sort key fail), and more than 25 matches are rejected by DynamoDB ([#28](https://github.com/senecajs/seneca-dynamo-store/issues/28)). | `null`, or the old entity with `load$: true`. |
 | `role:entity,cmd:close` | `seneca.close()` | None. | Empty. |
 | `role:entity,cmd:native` | `ent.native$()` | None. | `{ client }`: the `DynamoDB` client. |
 
