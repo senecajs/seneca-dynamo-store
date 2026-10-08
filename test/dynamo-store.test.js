@@ -17,6 +17,14 @@ const PluginValidator = require('seneca-plugin-validator')
 
 const LegacyStoreTest = require('seneca-store-test')
 
+// Callback form: `await seneca.ready()` can hang on an idle instance in
+// seneca 4.0.0-rc5.
+function ready(si) {
+  return new Promise((resolve, reject) =>
+    si.ready((err) => (err ? reject(err) : resolve())),
+  )
+}
+
 function make_seneca(config) {
   config = Object.assign({ seneca: {}, plugin: {} }, config)
   return (
@@ -51,18 +59,18 @@ lab.test('validate', PluginValidator(Plugin, module))
 
 lab.test('happy', async () => {
   const si = make_seneca()
-  await si.ready()
+  await ready(si)
   expect(si.find_plugin('dynamo-store$1')).exists()
 
   // double load works
   si.use('..')
-  await si.ready()
+  await ready(si)
   expect(si.find_plugin('dynamo-store$2')).exists()
 })
 
 lab.test('no-dups', async () => {
   const si = make_seneca()
-  await si.ready()
+  await ready(si)
   si.quiet()
 
   let list = await si.entity('uniq01').list$()
@@ -119,7 +127,7 @@ lab.describe('special-query', () => {
 
   const si = make_seneca({ plugin })
 
-  lab.before(() => si.ready())
+  lab.before(() => ready(si))
 
   let list = null
 
@@ -261,7 +269,7 @@ lab.describe('comparison-query', () => {
 
   const si = make_seneca({ plugin })
 
-  lab.before(() => si.ready())
+  lab.before(() => ready(si))
 
   let list = null
   let qop = {}
@@ -428,7 +436,7 @@ lab.describe('simple-sort', () => {
 
   const si = make_seneca({ plugin })
 
-  lab.before(() => si.ready())
+  lab.before(() => ready(si))
 
   let list = null
   let qop = {}
@@ -589,7 +597,7 @@ lab.test('injection-fails', async () => {
     },
   })
 
-  await si.ready()
+  await ready(si)
   si.quiet()
 
   /*
@@ -630,7 +638,7 @@ lab.test('injection-fails', async () => {
 
 lab.test('export', async () => {
   const si = make_seneca()
-  await si.ready()
+  await ready(si)
 
   const get_client = si.export('dynamo-store$1/get_client')
   expect(get_client()).exists()
@@ -652,13 +660,13 @@ lab.describe('legacy-store-test', () => {
 
   const si = make_seneca({ plugin })
 
-  lab.before(() => si.ready())
+  lab.before(() => ready(si))
 
   const si_merge = make_seneca({
     plugin: Object.assign({ merge: false }, plugin),
   })
 
-  lab.before(() => si_merge.ready())
+  lab.before(() => ready(si_merge))
 
   LegacyStoreTest.test.keyvalue(lab, {
     seneca: si,
