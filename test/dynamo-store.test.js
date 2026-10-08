@@ -26,7 +26,6 @@ function make_seneca(config) {
       .use('promisify')
       // make sure mem-store isn't being tested!
       .use('entity', { mem_store: false })
-      .use('doc')
       .use(
         '..',
         Object.assign(
@@ -35,7 +34,7 @@ function make_seneca(config) {
             aws: {
               region: 'region',
               endpoint:
-                process.env.SENECA_DYNAMO_ENDPOINT || 'http://localhost:18000',
+                process.env.SENECA_DYNAMO_ENDPOINT || 'http://localhost:18001',
               credentials: {
                 accessKeyId: 'none',
                 secretAccessKey: 'none',
