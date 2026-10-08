@@ -1,0 +1,15 @@
+name: seneca-dynamo-store
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:3.3.1
+    container_name: seneca-dynamo-store-dynamodb
+    command: -jar DynamoDBLocal.jar -sharedDb -inMemory
+    ports:
+      - 18001:8000
+    healthcheck:
+      # The image has no curl or wget; bash /dev/tcp checks the port.
+      test: ['CMD-SHELL', 'bash -c "exec 3<>/dev/tcp/127.0.0.1/8000"']
+      interval: 5s
+      timeout: 5s
+      retries: 20
