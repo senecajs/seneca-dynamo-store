@@ -7,12 +7,12 @@ needed.
 ## 1. Install
 
 ```sh
-npm install seneca seneca-entity seneca-promisify @seneca/dynamo-store
+npm install seneca@^4 @seneca/entity @seneca/dynamo-store
 npm install @aws-sdk/client-dynamodb @aws-sdk/util-dynamodb
 ```
 
-`seneca-entity`, `seneca-promisify` and the two AWS SDK v3 packages are
-peer dependencies: the plugin uses the copies your application installs.
+`seneca`, `@seneca/entity` and the two AWS SDK v3 packages are peer
+dependencies: the plugin uses the copies your application installs.
 
 ## 2. Start DynamoDB Local
 
@@ -38,8 +38,7 @@ const endpoint = process.env.SENECA_DYNAMO_ENDPOINT || 'http://localhost:18001'
 async function main() {
   const seneca = Seneca({ legacy: false })
     .test()
-    .use('promisify')
-    .use('entity')
+    .use('@seneca/entity')
     .use('@seneca/dynamo-store', {
       aws: {
         region: 'local',
@@ -48,7 +47,7 @@ async function main() {
       },
     })
 
-  await new Promise((resolve) => seneca.ready(resolve))
+  await seneca.ready()
 
   // The plugin does not create tables. Create one with the exported client.
   const client = seneca.export('dynamo-store/get_client')()
@@ -89,7 +88,7 @@ the package name.) Run it:
 node docs/examples/getting-started.js
 ```
 
-Output, with `seneca@4.0.0-rc5`:
+Output, with `seneca@4.0.0`:
 
 ```
 loaded: apple 1
@@ -107,8 +106,6 @@ remaining: [ 'pear' ]
 * `save$` without an id generated one and wrote the item with
   `PutItem`; `load$` used `GetItem`; `list$` with a query used `Scan`
   with a filter expression; `remove$` used `DeleteItem`.
-* Waiting with the callback form of `ready` avoids a hang of
-  `await seneca.ready()` on an idle instance in 4.0.0-rc5.
 
 ## Next steps
 

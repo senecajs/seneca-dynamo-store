@@ -4,10 +4,10 @@
 # @seneca/dynamo-store
 
 An AWS DynamoDB entity store for Seneca: `save$`, `load$`, `list$` and
-`remove$` on seneca-entity entities become DynamoDB `PutItem`,
+`remove$` on `@seneca/entity` entities become DynamoDB `PutItem`,
 `UpdateItem`, `GetItem`, `Query`, `Scan` and `DeleteItem` calls through
-the AWS SDK v3. Works with Seneca 3 and Seneca 4 (tested on
-4.0.0-rc5 and 4.0.0), Node 22 and 24.
+the AWS SDK v3. Version 7 works with Seneca 4 and `@seneca/entity` 29,
+on Node.js 24 or later. Seneca 3 users stay on `@seneca/dynamo-store@6`.
 
 [![npm version](https://img.shields.io/npm/v/@seneca/dynamo-store.svg)](https://npmjs.com/package/@seneca/dynamo-store)
 [![build](https://github.com/senecajs/seneca-dynamo-store/actions/workflows/build.yml/badge.svg)](https://github.com/senecajs/seneca-dynamo-store/actions/workflows/build.yml)
@@ -20,7 +20,7 @@ the AWS SDK v3. Works with Seneca 3 and Seneca 4 (tested on
 ## Install
 
 ```sh
-npm install seneca seneca-entity seneca-promisify @seneca/dynamo-store
+npm install seneca@^4 @seneca/entity @seneca/dynamo-store
 npm install @aws-sdk/client-dynamodb @aws-sdk/util-dynamodb
 ```
 
@@ -30,8 +30,7 @@ npm install @aws-sdk/client-dynamodb @aws-sdk/util-dynamodb
 const Seneca = require('seneca')
 
 const seneca = Seneca()
-  .use('promisify')
-  .use('entity')
+  .use('@seneca/entity')
   .use('@seneca/dynamo-store', {
     aws: { region: 'eu-west-1' },
   })
@@ -77,12 +76,12 @@ The full list is in the [documentation index](docs/README.md).
 ## Contributing
 
 The [Senecajs org](https://github.com/senecajs/) encourages open
-participation. To run the tests (Node 24 or 22, Docker):
+participation. To run the tests (Node.js 24 or later, Docker):
 
 ```sh
 npm install
 npm run services:up    # DynamoDB Local on port 18001
-npm test               # devDependency seneca@^4.0.0-rc5
+npm test               # devDependency seneca@^4.0.0
 npm run services:down
 ```
 
@@ -96,7 +95,7 @@ the AWS SDK v3 in version 6.
 
 | Version | Seneca | Node |
 | ------- | ------ | ---- |
-| 6.2.1 | 3.x, 4.x | 22, 24 |
+| 7.0.0 | 4.x | 24+ |
 | 6.2.0 | 3.x | 16+ |
 
 License: [MIT](LICENSE).

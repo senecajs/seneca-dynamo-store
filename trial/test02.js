@@ -2,8 +2,7 @@
 const Seneca = require('seneca')
 
 var s0 = Seneca().test()
-    .use('promisify')
-    .use('entity')
+    .use('@seneca/entity')
     .use('doc')
     .use('..', {
       aws: {

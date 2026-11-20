@@ -12,7 +12,7 @@ options with `seneca.use('@seneca/dynamo-store', { ... })`.
 | `unmarshall` | object (open) | `{ wrapNumbers: false }` | Options for `unmarshall` when reading items. |
 | `client` | object (open) | `{ convertEmptyValues: false }` | Declared but not read by the current code. |
 | `test` | boolean | `false` | Declared but not read by the current code. |
-| `generate_id` | function | `entity/generate_id` export of seneca-entity | Creates ids for new entities without `id$`. Set internally; override only to change id generation. |
+| `generate_id` | function | `entity/generate_id` export of `@seneca/entity` | Creates ids for new entities without `id$`. Set internally; override only to change id generation. |
 
 ## Connection settings
 

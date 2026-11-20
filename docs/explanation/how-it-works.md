@@ -3,7 +3,9 @@
 ## Lifecycle
 
 `seneca.use('@seneca/dynamo-store')` calls `entity/init` of
-seneca-entity, which registers the store patterns for the plugin. The
+`@seneca/entity`, which registers the store patterns for the plugin.
+Load `@seneca/entity` first; without it the plugin stops with an error
+that says so. The
 `init:dynamo-store` action then creates one `DynamoDB` client from the
 `aws` option. Each store action builds an AWS SDK v3 command
 (`PutItemCommand`, `GetItemCommand`, `ScanCommand`, ...) and sends it
@@ -31,13 +33,14 @@ that the plugin can use `Query` instead of `Scan`.
 
 ## Seneca 3 and Seneca 4
 
-The plugin code does not depend on the Seneca major version. It uses
-`seneca.export`, `seneca.add`, `seneca.util.clean`, `seneca.util.deep`
-and `Seneca.valid.Open`, which exist in both. On Seneca 4:
+Version 7 supports Seneca 4 only; Seneca 3 users stay on
+`@seneca/dynamo-store@6`. The plugin uses `seneca.export`, `seneca.add`,
+`seneca.util.clean` and `seneca.util.deep`, and builds its option
+defaults with the `valid` builders that Seneca passes in. On Seneca 4:
 
+* the entity plugin is `@seneca/entity` 29;
 * options must come from `use()` or `options.plugin`;
-* DynamoDB errors are not wrapped (`legacy.error` is false);
-* in 4.0.0-rc5, `await seneca.ready()` can hang on an idle instance,
-  so the tests and examples use `seneca.ready(callback)`.
+* DynamoDB errors are not wrapped (`legacy.error` is false).
 
-Tests run on Seneca 4.0.0-rc5 and the 4.0.0 build, Node 24 and 22.
+Tests run on Seneca 4.0.0 with `@seneca/entity` 29 against DynamoDB
+Local 3.3.1, on Node.js 24 or later.

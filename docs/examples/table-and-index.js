@@ -8,8 +8,7 @@ const endpoint = process.env.SENECA_DYNAMO_ENDPOINT || 'http://localhost:18001'
 async function main() {
   const seneca = Seneca({ legacy: false })
     .test()
-    .use('promisify')
-    .use('entity')
+    .use('@seneca/entity')
     .use(require('../..'), {
       aws: {
         region: 'local',
@@ -27,7 +26,7 @@ async function main() {
       },
     })
 
-  await new Promise((resolve) => seneca.ready(resolve))
+  await seneca.ready()
 
   const client = seneca.export('dynamo-store/get_client')()
   await client.send(

@@ -1,6 +1,6 @@
 # Messages
 
-The plugin is a seneca-entity store. `seneca-entity` registers the
+The plugin is an entity store. `@seneca/entity` registers the
 standard store patterns for it; you normally call them through the
 entity API (`save$`, `load$`, `list$`, `remove$`, `native$`).
 
@@ -14,7 +14,7 @@ entity API (`save$`, `load$`, `list$`, `remove$`, `native$`).
 | `role:entity,cmd:native` | `ent.native$()` | None. | `{ client }`: the `DynamoDB` client. |
 
 Each pattern also carries the entity's `base`/`name` and the store
-name `dynamo-store`; see the seneca-entity documentation.
+name `dynamo-store`; see the `@seneca/entity` documentation.
 
 ## Query directives
 

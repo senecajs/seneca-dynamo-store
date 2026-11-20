@@ -2,7 +2,7 @@
 
 Goal: run the test suite against DynamoDB Local in Docker.
 
-1. Use Node 24 (or 22) and install:
+1. Use Node.js 24 or later and install:
 
    ```sh
    npm install
@@ -49,11 +49,3 @@ SENECA_DYNAMO_ENDPOINT=http://localhost:8000 npm test
 
 Other scripts: `npm run test-list-tables`, `npm run test-delete-db`
 (deletes every table on the endpoint), `npm run test-some -- <grep>`.
-
-## Test against the Seneca 4.0.0 build
-
-```sh
-npm install --no-save /path/to/seneca-4.0.0.tgz
-npm test
-npm install   # restore the devDependency
-```
