@@ -15,7 +15,7 @@ const Seneca = require('seneca')
 const Plugin = require('..')
 const PluginValidator = require('seneca-plugin-validator')
 
-const LegacyStoreTest = require('seneca-store-test')
+const LegacyStoreTest = require('@seneca/store-test')
 
 // Callback form: `await seneca.ready()` can hang on an idle instance in
 // seneca 4.0.0-rc5.
@@ -31,9 +31,8 @@ function make_seneca(config) {
     Seneca(Object.assign({ legacy: false }, config.seneca))
       .test()
 
-      .use('promisify')
       // make sure mem-store isn't being tested!
-      .use('entity', { mem_store: false })
+      .use('@seneca/entity', { mem_store: false })
       .use(
         '..',
         Object.assign(

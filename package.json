@@ -1,7 +1,7 @@
 {
   "name": "@seneca/dynamo-store",
   "description": "DynamoDB store for Seneca",
-  "version": "6.2.1",
+  "version": "7.0.0",
   "keywords": [
     "seneca",
     "dynamo",
@@ -36,38 +36,38 @@
   "files": [
     "LICENSE",
     "README.md",
-    "dynamo-store.js",
-    "dynamo-store-docs.js",
-    "lib"
+    "CHANGES.md",
+    "dynamo-store.js"
   ],
   "contributors": [
     "https://github.com/lilsweetcaligula",
     "Aleksandar Milenkovic - https://github.com/BeAllAround"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   },
   "devDependencies": {
     "@aws-sdk/client-dynamodb": "^3.1147.0",
     "@aws-sdk/util-dynamodb": "^3.996.9",
     "@hapi/code": "^9.0.3",
     "@hapi/lab": "^26.0.1",
+    "@seneca/entity": "^29.0.0",
+    "@seneca/store-test": "^7.0.0",
     "prettier": "3.3.1",
-    "seneca": "^4.0.0-rc5",
-    "seneca-entity": "^28.1.0",
-    "seneca-plugin-validator": "0.6.1",
-    "seneca-promisify": "^3.7.2",
-    "seneca-store-test": "^6.0.0"
+    "seneca": "^4.0.0",
+    "seneca-plugin-validator": "^0.7.0"
   },
   "peerDependencies": {
-    "seneca": ">=3||>=4.0.0-rc2",
-    "seneca-entity": ">=26",
-    "seneca-promisify": ">=3",
+    "seneca": "^4.0.0",
+    "@seneca/entity": "^29.0.0",
     "@aws-sdk/client-dynamodb": ">=3",
     "@aws-sdk/util-dynamodb": ">=3"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/senecajs/seneca-dynamo-store.git"
+    "url": "git+https://github.com/senecajs/seneca-dynamo-store.git"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

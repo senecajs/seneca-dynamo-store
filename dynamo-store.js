@@ -1,9 +1,6 @@
 /* Copyright (c) 2020-2023 Richard Rodger and other contributors, MIT License. */
 'use strict'
 
-const Seneca = require('seneca')
-const { Open } = Seneca.valid
-
 // AWS utility
 const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb')
 const DynamoDBClient = require('@aws-sdk/client-dynamodb')
@@ -14,7 +11,8 @@ module.exports.errors = {}
 
 const intern = (module.exports.intern = make_intern())
 
-module.exports.defaults = {
+// Built with the shape builders that the loading Seneca instance passes in.
+module.exports.defaults = ({ valid: { Open } }) => ({
   test: false,
 
   // preserve undefined fields when saving
@@ -40,7 +38,7 @@ module.exports.defaults = {
 
   // entity meta data, by canon string
   entity: {},
-}
+})
 
 function dynamo_store(options) {
   const seneca = this
@@ -62,7 +60,15 @@ function dynamo_store(options) {
   )
 
   var store = intern.make_store(ctx)
+
+  // @seneca/entity exports the store init function as entity/init.
   let init = seneca.export('entity/init')
+  if ('function' !== typeof init) {
+    throw new Error(
+      'dynamo-store: load @seneca/entity before this plugin, for example ' +
+        "seneca.use('@seneca/entity').use('@seneca/dynamo-store')",
+    )
+  }
   var meta = init(seneca, options, store)
 
   seneca.add({ init: store.name, tag: meta.tag }, function (msg, reply) {
