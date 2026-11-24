@@ -2,29 +2,31 @@
 
 Goal: run an application that uses this store on Seneca 4.
 
-1. Install Seneca 4 (prerelease until 4.0.0 is published) and current
-   peers:
+1. Install Seneca 4, the entity plugin `@seneca/entity` (it replaces
+   `seneca-entity`) and version 7 of this store, which supports Seneca 4
+   only. Seneca 3 users stay on `@seneca/dynamo-store@6`.
 
    ```sh
-   npm install seneca@^4.0.0-rc5 seneca-entity@^28.1.0 seneca-promisify@^3.7.2
+   npm install seneca@^4 @seneca/entity @seneca/dynamo-store
    ```
+
+   Load the entity plugin by its full name, before the store:
+   `seneca.use('@seneca/entity').use('@seneca/dynamo-store', options)`.
 
 2. Pass plugin options through `use()` or `options.plugin['dynamo-store']`.
    Seneca 4 no longer reads a top level `options['dynamo-store']`.
 
-3. Wait for startup with the callback form while you use 4.0.0-rc5:
-
-   ```js
-   await new Promise((resolve) => seneca.ready(resolve))
-   ```
+3. Wait for startup with `await seneca.ready()`.
 
 4. Errors from DynamoDB reach your callback or rejected promise as the
    original AWS SDK error (`err.name`, `err.message`), not wrapped in a
    `seneca: Action ... failed` error, because `legacy.error` is false by
    default.
 
-5. `seneca-promisify` is still needed on Seneca 3. On Seneca 4 it does
-   nothing and can stay in place.
+5. Remove `seneca-promisify` and `.use('promisify')`: Seneca 4 has the
+   promise API built in, and version 7 no longer declares it as a peer.
 
-The plugin code is the same on both versions; see
+6. Use Node.js 24 or later.
+
+See
 [Seneca 3 and Seneca 4](../explanation/how-it-works.md#seneca-3-and-seneca-4).
